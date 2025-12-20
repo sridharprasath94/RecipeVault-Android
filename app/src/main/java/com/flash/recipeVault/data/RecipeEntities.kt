@@ -7,8 +7,8 @@ data class RecipeEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val title: String,
     val description: String? = null,
-    val imageUri: String? = null,
-    val imageUrl: String? = null,
+    val imageUri: String? = null,// local picker URI (optional, temporary)
+    val imageUrl: String? = null,// Firebase Storage download URL (persisted)
     val isDeleted: Boolean = false,
     val deletedAt: Long? = null,
     val createdAt: Long = System.currentTimeMillis(),

@@ -21,9 +21,9 @@ import com.flash.recipeVault.vm.EditRecipeViewModel
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalContext
 import coil.compose.rememberAsyncImagePainter
-import com.flash.recipeVault.util.ImageBase64Util
-import com.flash.recipeVault.util.rememberBase64ImageBitmap
 import androidx.compose.runtime.derivedStateOf
+import com.flash.recipeVault.util.RecipeAsyncImage
+import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,13 +42,13 @@ fun EditRecipeScreen(
     val steps = remember { mutableStateListOf("") }
     var error by remember { mutableStateOf<String?>(null) }
     var pickedImageUri by rememberSaveable { mutableStateOf<String?>(null) }
-    var alreadyAvailableBase64Image by rememberSaveable { mutableStateOf<String?>(null) }
+    var alreadyAvailableImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
         onResult = { uri ->
             pickedImageUri = uri?.toString()
-            alreadyAvailableBase64Image = null
+            alreadyAvailableImageUrl = null
         }
     )
     val context = LocalContext.current
@@ -56,7 +56,7 @@ fun EditRecipeScreen(
         val r = data ?: return@LaunchedEffect
         title = r.recipe.title
         desc = r.recipe.description ?: ""
-        alreadyAvailableBase64Image = r.recipe.imageUrl
+        alreadyAvailableImageUrl = r.recipe.imageUrl
 
         ingredients.clear()
         val ing = r.ingredients.sortedBy { it.sortOrder }
@@ -104,22 +104,11 @@ fun EditRecipeScreen(
 
                         val cleanSteps = steps.map { it.trim() }.filter { it.isNotEmpty() }
 
-                        val finalImageBase64: String? =
-                            when {
-                                !pickedImageUri.isNullOrBlank() ->
-                                    ImageBase64Util.tryReadAsBase64(context, pickedImageUri)
-
-                                !alreadyAvailableBase64Image.isNullOrBlank() ->
-                                    alreadyAvailableBase64Image
-
-                                else -> null
-                            }
-
                         vm.save(
                             title = cleanTitle,
                             description = desc.trim().ifEmpty { null },
                             imageUri = pickedImageUri,
-                            imageUrl = finalImageBase64,
+                            imageUrl = null,
                             ingredients = ingredientTriples,
                             steps = cleanSteps,
                             onDone = onBack,
@@ -158,7 +147,7 @@ fun EditRecipeScreen(
             item {
                 RecipeImageSection(
                     pickedImageUri = pickedImageUri,
-                    savedBase64 = alreadyAvailableBase64Image,
+                    imageUrl = alreadyAvailableImageUrl,
                     onPickClick = {
                         pickImageLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -166,7 +155,7 @@ fun EditRecipeScreen(
                     },
                     onRemoveClick = {
                         pickedImageUri = null
-                        alreadyAvailableBase64Image = null
+                        alreadyAvailableImageUrl = null
                     }
                 )
             }
@@ -213,13 +202,13 @@ fun EditRecipeScreen(
 @Composable
 private fun RecipeImageSection(
     pickedImageUri: String?,
-    savedBase64: String?,
+    imageUrl: String?,
     onPickClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
     // Prefer the freshly picked local image over the saved Base64.
-    val hasAnyImage by remember(pickedImageUri, savedBase64) {
-        derivedStateOf { !pickedImageUri.isNullOrBlank() || !savedBase64.isNullOrBlank() }
+    val hasAnyImage by remember(pickedImageUri, imageUrl) {
+        derivedStateOf { !pickedImageUri.isNullOrBlank() || !imageUrl.isNullOrBlank() }
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -238,27 +227,12 @@ private fun RecipeImageSection(
     when {
         !pickedImageUri.isNullOrBlank() -> {
             Spacer(Modifier.height(8.dp))
-            Image(
-                painter = rememberAsyncImagePainter(pickedImageUri),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-            )
+            RecipeImage(pickedImageUri)
         }
 
-        !savedBase64.isNullOrBlank() -> {
-            val bmp = rememberBase64ImageBitmap(savedBase64)
-            if (bmp != null) {
-                Spacer(Modifier.height(8.dp))
-                Image(
-                    bitmap = bmp,
-                    contentDescription = "Recipe image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp)
-                )
-            }
+        !imageUrl.isNullOrBlank() -> {
+            Spacer(Modifier.height(8.dp))
+            RecipeAsyncImage(imageUrl)
         }
     }
 }

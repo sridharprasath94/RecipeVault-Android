@@ -7,7 +7,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.foundation.Image
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
@@ -15,7 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
-import com.flash.recipeVault.util.rememberBase64ImageBitmap
+import com.flash.recipeVault.util.RecipeAsyncImage
 import com.flash.recipeVault.vm.RecipeDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,16 +68,8 @@ fun RecipeDetailScreen(
                         Spacer(Modifier.height(6.dp))
                         Text(data.recipe.description, style = MaterialTheme.typography.bodyLarge)
                     }
-                    val imageBitmap = rememberBase64ImageBitmap(data.recipe.imageUrl)
-
-                    imageBitmap?.let {
-                        Image(
-                            bitmap = it,
-                            contentDescription = "Recipe image",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp)
-                        )
+                    data.recipe.imageUrl?.let { url ->
+                        RecipeAsyncImage(url)
                     }
                 }
 

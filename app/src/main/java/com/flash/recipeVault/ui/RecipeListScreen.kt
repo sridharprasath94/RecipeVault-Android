@@ -5,7 +5,6 @@ package com.flash.recipeVault.ui
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -52,7 +50,7 @@ import androidx.core.content.FileProvider
 import com.flash.recipeVault.R
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.ConfirmationDialog
-import com.flash.recipeVault.util.rememberBase64ImageBitmap
+import com.flash.recipeVault.util.RecipeAsyncImage
 import com.flash.recipeVault.vm.RecipeListViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
@@ -254,16 +252,8 @@ fun RecipeListScreen(
                                 }
                             }
 
-                            val imageBitmap = rememberBase64ImageBitmap(r.imageUrl)
-
-                            imageBitmap?.let {
-                                Image(
-                                    bitmap = it,
-                                    contentDescription = "Recipe image",
-                                    modifier = Modifier
-                                        .width(50.dp)
-                                        .height(50.dp)
-                                )
+                            r.imageUrl?.let { url ->
+                                RecipeAsyncImage(url)
                             }
 
                             IconButton(onClick = {

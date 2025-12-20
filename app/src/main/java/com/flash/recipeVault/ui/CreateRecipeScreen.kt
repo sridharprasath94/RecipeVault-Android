@@ -22,8 +22,10 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.vm.CreateRecipeViewModel
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.flash.recipeVault.util.ImageBase64Util
+import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +45,6 @@ fun CreateRecipeScreen(
 
     var error by remember { mutableStateOf<String?>(null) }
     var imageUri by rememberSaveable { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -68,7 +69,7 @@ fun CreateRecipeScreen(
                                 title = title.trim(),
                                 description = desc,
                                 imageUri = imageUri,
-                                imageUrl = ImageBase64Util.tryReadAsBase64(context, imageUri),
+                                imageUrl = null,
                                 ingredients = ingredients.toList(),
                                 steps = steps.toList(),
                                 onDone = onCreated,
@@ -81,7 +82,9 @@ fun CreateRecipeScreen(
         }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize(),
             contentPadding = PaddingValues(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -115,11 +118,7 @@ fun CreateRecipeScreen(
 
                 if (imageUri != null) {
                     Spacer(Modifier.height(8.dp))
-                    Image(
-                        painter = rememberAsyncImagePainter(imageUri),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxWidth().height(180.dp)
-                    )
+                    RecipeImage(imageUri)
                 }
             }
 
@@ -137,7 +136,10 @@ fun CreateRecipeScreen(
 
             item {
                 OutlinedButton(onClick = { ingredients.add(0, IngredientFormRow()) }) {
-                    Icon(Icons.Default.Add, null); Spacer(Modifier.width(8.dp)); Text("Add ingredient")
+                    Icon(
+                        Icons.Default.Add,
+                        null
+                    ); Spacer(Modifier.width(8.dp)); Text("Add ingredient")
                 }
             }
 
