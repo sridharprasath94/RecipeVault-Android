@@ -1,0 +1,35 @@
+# ===== Android / Gradle =====
+/.gradle/
+build/
+**/build/
+
+# Local SDK path
+local.properties
+
+# ===== Android Studio =====
+.idea/
+*.iml
+
+# Android Studio captures & logs
+captures/
+.externalNativeBuild/
+
+# ===== Kotlin / Java =====
+*.class
+
+# ===== OS files =====
+.DS_Store
+Thumbs.db
+
+# ===== Keystore (VERY IMPORTANT) =====
+*.jks
+*.keystore
+
+# ===== Firebase =====
+google-services.json
+
+# ===== Tests =====
+*.log
+
+# ===== NDK =====
+.cxx/
