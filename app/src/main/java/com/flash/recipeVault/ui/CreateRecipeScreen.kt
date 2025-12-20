@@ -24,7 +24,6 @@ import com.flash.recipeVault.vm.CreateRecipeViewModel
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import com.flash.recipeVault.util.ImageBase64Util
 import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -2,7 +2,6 @@ package com.flash.recipeVault.firebase
 
 import android.content.Context
 import com.flash.recipeVault.data.*
-import com.flash.recipeVault.util.ImageBase64Util
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
