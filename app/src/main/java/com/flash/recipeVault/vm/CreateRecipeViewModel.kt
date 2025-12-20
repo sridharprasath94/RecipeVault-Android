@@ -19,13 +19,13 @@ class CreateRecipeViewModel(
         if (title.isBlank()) return "Title is required"
 
         // At least one ingredient must be fully filled (name + qty + unit)
-//        val hasAtLeastOneCompleteIngredient = ingredients.any { (name, qty, unit) ->
-//            name.isNotBlank() && !qty.isNullOrBlank() && !unit.isNullOrBlank()
-//        }
-//        if (!hasAtLeastOneCompleteIngredient) return "At least one ingredient is required"
-//
-//        val hasAtLeastOneStep = steps.any { it.isNotBlank() }
-//        if (!hasAtLeastOneStep) return "At least one step is required"
+        val hasAtLeastOneCompleteIngredient = ingredients.any { (name, qty, unit) ->
+            name.isNotBlank() && !qty.isNullOrBlank() && !unit.isNullOrBlank()
+        }
+        if (!hasAtLeastOneCompleteIngredient) return "At least one ingredient is required"
+
+        val hasAtLeastOneStep = steps.any { it.isNotBlank() }
+        if (!hasAtLeastOneStep) return "At least one step is required"
 
         return null
     }
