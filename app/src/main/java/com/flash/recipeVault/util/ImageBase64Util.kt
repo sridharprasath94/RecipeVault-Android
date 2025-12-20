@@ -29,12 +29,6 @@ object ImageBase64Util {
         }
     }
 
-    fun toDataUri(base64: String?): String? {
-        if (base64.isNullOrBlank()) return null
-        // Default to jpeg; you can store mime later if needed
-        return "$base64"
-    }
-
     fun base64ToImageBitmap(base64: String): ImageBitmap? {
         return try {
             val cleanBase64 = base64.substringAfter(",") // removes data:image/... if present

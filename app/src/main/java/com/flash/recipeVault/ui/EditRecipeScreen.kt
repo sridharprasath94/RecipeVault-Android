@@ -104,11 +104,22 @@ fun EditRecipeScreen(
 
                         val cleanSteps = steps.map { it.trim() }.filter { it.isNotEmpty() }
 
+                        val finalImageBase64: String? =
+                            when {
+                                !pickedImageUri.isNullOrBlank() ->
+                                    ImageBase64Util.tryReadAsBase64(context, pickedImageUri)
+
+                                !alreadyAvailableBase64Image.isNullOrBlank() ->
+                                    alreadyAvailableBase64Image
+
+                                else -> null
+                            }
+
                         vm.save(
                             title = cleanTitle,
                             description = desc.trim().ifEmpty { null },
                             imageUri = pickedImageUri,
-                            imageUrl = ImageBase64Util.tryReadAsBase64(context, pickedImageUri),
+                            imageUrl = finalImageBase64,
                             ingredients = ingredientTriples,
                             steps = cleanSteps,
                             onDone = onBack,
