@@ -1,12 +1,21 @@
 package com.flash.recipeVault.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.vm.RecipeListViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreenForTest(
     repo: RecipeRepository
@@ -14,13 +23,13 @@ fun RecipeListScreenForTest(
     val vm = remember { RecipeListViewModel(repo) }
     val recipes by vm.recipes.collectAsState()
 
-    androidx.compose.material3.Scaffold(
-        topBar = { androidx.compose.material3.TopAppBar(title = { androidx.compose.material3.Text("Recipes") }) }
+    Scaffold(
+        topBar = { TopAppBar(title = { Text("Recipes") }) }
     ) { padding ->
         if (recipes.isEmpty()) {
             androidx.compose.foundation.layout.Box(
-                modifier = androidx.compose.ui.Modifier.padding(padding).fillMaxSize(),
-                contentAlignment = androidx.compose.ui.Alignment.Center
+                modifier = Modifier.padding(padding).fillMaxSize(),
+                contentAlignment = Alignment.Center
             ) {
                 androidx.compose.material3.Text("No recipes yet. Tap + to add one.")
             }

@@ -38,6 +38,7 @@ class RecipeRepositoryInstrumentedTest {
             title = "Pasta",
             description = "Quick dinner",
             imageUri = null,
+            imageUrl = null,
             ingredients = listOf(Triple("Noodles", "200", "g")),
             steps = listOf("Boil water", "Cook noodles")
         )
