@@ -1,6 +1,11 @@
 package com.flash.recipeVault.data
 
-class RecipeRepository(private val dao: RecipeDao) {
+import com.flash.recipeVault.firebase.FirebaseImageStorage
+
+class RecipeRepository(
+    private val dao: RecipeDao,
+    private val imageStorage: FirebaseImageStorage
+) {
 
     fun observeRecipes() = dao.observeRecipes()
     fun observeRecipe(id: Long) = dao.observeRecipeWithDetails(id)
@@ -14,11 +19,14 @@ class RecipeRepository(private val dao: RecipeDao) {
         steps: List<String>
     ): Long {
         val now = System.currentTimeMillis()
+
+        // Insert first so we get a stable local id (also used as part of the Storage path).
         val recipeId = dao.insertRecipe(
             RecipeEntity(
                 title = title,
                 description = description,
                 imageUri = imageUri,
+                // We will set a real Firebase Storage download URL after upload.
                 imageUrl = imageUrl,
                 createdAt = now,
                 updatedAt = now
@@ -43,11 +51,25 @@ class RecipeRepository(private val dao: RecipeDao) {
             }
         )
 
+        // If caller didn't provide an URL but did provide a picked local imageUri, upload it and persist the download URL.
+        if (imageUrl.isNullOrBlank() && !imageUri.isNullOrBlank()) {
+            val downloadUrl = imageStorage.uploadRecipeImage(recipeId = recipeId, localUri = imageUri)
+            dao.updateImageUrl(
+                id = recipeId,
+                imageUrl = downloadUrl,
+                updatedAt = System.currentTimeMillis()
+            )
+        }
+
         return recipeId
     }
 
     suspend fun deleteRecipe(id: Long) {
         val now = System.currentTimeMillis()
+
+        // Read existing image URL before we tombstone.
+        val local = dao.getRecipeOnce(id)
+        val oldUrl = local?.imageUrl
 
         // Soft-delete (tombstone) so two-way Firestore sync will not resurrect deleted recipes.
         dao.markRecipeDeleted(id = id, deletedAt = now, updatedAt = now)
@@ -55,6 +77,15 @@ class RecipeRepository(private val dao: RecipeDao) {
         // Optional: remove children locally to save space (the recipe row remains as a tombstone).
         dao.deleteIngredients(id)
         dao.deleteSteps(id)
+
+        // Best-effort delete of remote image to avoid orphaned files in Storage.
+        if (!oldUrl.isNullOrBlank()) {
+            try {
+                imageStorage.deleteByUrl(oldUrl)
+            } catch (_: Exception) {
+                // Swallow: do not fail the delete flow if Storage deletion fails.
+            }
+        }
     }
 
     suspend fun updateLocalImageUrl(id: Long, imageUrl: String) {
@@ -74,14 +105,49 @@ class RecipeRepository(private val dao: RecipeDao) {
         ingredients: List<Triple<String, String?, String?>>,
         steps: List<String>
     ) {
-        val now = System.currentTimeMillis()
+        System.currentTimeMillis()
+
+        val local = dao.getRecipeOnce(id)
+        val oldUrl = local?.imageUrl
+
+        // Resolve the final imageUrl:
+        // - If caller passed a non-blank URL, keep it.
+        // - Else if a new local imageUri exists, upload and use the download URL.
+        // - Else (no imageUri and no URL), treat as image removed.
+        var finalImageUrl: String? = imageUrl
+
+        val pickedNewImage = !imageUri.isNullOrBlank()
+        if (finalImageUrl.isNullOrBlank() && pickedNewImage) {
+            // Upload new image and use its download URL.
+            finalImageUrl = imageStorage.uploadRecipeImage(recipeId = id, localUri = imageUri)
+
+            // Only after successful upload, delete the previous remote image (if it existed).
+            if (!oldUrl.isNullOrBlank() && oldUrl != finalImageUrl) {
+                try {
+                    imageStorage.deleteByUrl(oldUrl)
+                } catch (_: Exception) {
+                    // Best-effort
+                }
+            }
+        } else {
+            // If user cleared image (no picked URI and no URL), delete the old remote image (best-effort)
+            val userRemovedImage = imageUri.isNullOrBlank() && finalImageUrl.isNullOrBlank()
+            if (userRemovedImage && !oldUrl.isNullOrBlank()) {
+                try {
+                    imageStorage.deleteByUrl(oldUrl)
+                } catch (_: Exception) {
+                    // Best-effort
+                }
+            }
+        }
+
         dao.updateRecipe(
             id = id,
             title = title,
             description = description,
             imageUri = imageUri,
-            imageUrl = imageUrl,
-            updatedAt = now
+            imageUrl = finalImageUrl,
+            updatedAt = System.currentTimeMillis()
         )
 
         dao.deleteIngredients(id)

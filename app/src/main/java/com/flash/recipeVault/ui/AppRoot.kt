@@ -22,10 +22,15 @@ fun AppRoot(container: AppContainer) {
         val nav = rememberNavController()
         val authVm = remember { AuthViewModel() }
         val state by authVm.state.collectAsState()
+
+        // Only care about uid for lifecycle side-effects
+        val uid = (state as? AuthState.LoggedIn)?.uid
+
         val realtimeRegState = remember { mutableStateOf<ListenerRegistration?>(null) }
 
-        DisposableEffect(state) {
-            if (state is AuthState.LoggedIn) {
+        // Start/stop realtime listener strictly per uid
+        DisposableEffect(uid) {
+            if (uid != null) {
                 realtimeRegState.value =
                     container.firestoreSyncServiceForCurrentUser().startRealtime()
             }

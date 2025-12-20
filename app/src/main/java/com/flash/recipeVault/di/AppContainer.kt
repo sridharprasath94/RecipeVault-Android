@@ -4,10 +4,18 @@ import android.content.Context
 import com.flash.recipeVault.data.RecipeDatabase
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.firebase.FirebaseBackupService
+import com.flash.recipeVault.firebase.FirebaseImageStorage
 import com.flash.recipeVault.firebase.FirestoreSyncService
 import com.google.firebase.auth.FirebaseAuth
 
 class AppContainer(private val context: Context) {
+    private val imageStorage by lazy {
+        FirebaseImageStorage(
+            context,
+            auth = auth
+        )
+    }
+
 
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
@@ -18,7 +26,7 @@ class AppContainer(private val context: Context) {
     fun recipeRepositoryForCurrentUser(): RecipeRepository {
         val uid = auth.currentUser?.uid ?: error("User not logged in")
         val db = RecipeDatabase.get(context, "recipe_db_$uid")
-        return RecipeRepository(db.recipeDao())
+        return RecipeRepository(db.recipeDao(), imageStorage)
     }
 
     fun firebaseBackupServiceForCurrentUser(): FirebaseBackupService {
@@ -26,6 +34,10 @@ class AppContainer(private val context: Context) {
     }
 
     fun firestoreSyncServiceForCurrentUser(): FirestoreSyncService {
-        return FirestoreSyncService(context, recipeRepositoryForCurrentUser(), auth = FirebaseAuth.getInstance())
+        return FirestoreSyncService(
+            context,
+            recipeRepositoryForCurrentUser(),
+            auth = FirebaseAuth.getInstance()
+        )
     }
 }

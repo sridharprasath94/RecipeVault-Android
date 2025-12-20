@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -86,12 +87,12 @@ class FirestoreSyncService(
                 val ing = details?.ingredients?.sortedBy { it.sortOrder } ?: emptyList()
                 val st = details?.steps?.sortedBy { it.sortOrder } ?: emptyList()
 
-                val payload = hashMapOf<String, Any?>(
+                val payload = hashMapOf(
                     "id" to local.id,
                     "title" to local.title,
                     "description" to local.description,
                     "imageUri" to local.imageUri,
-                    "imageUrl" to (local.imageUrl ?: ImageBase64Util.tryReadAsBase64(context, local.imageUri)),
+                    "imageUrl" to local.imageUrl,
                     "createdAt" to local.createdAt,
                     "updatedAt" to local.updatedAt,
                     "isDeleted" to local.isDeleted,
@@ -174,7 +175,7 @@ class FirestoreSyncService(
                 } ?: emptyList()
 
                 // Fire-and-forget; Room writes are suspend so we launch a coroutine via a lightweight thread.
-                kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
                     repo.applyRemoteRecipe(recipe, ingredients, steps)
                 }
             }
