@@ -29,14 +29,15 @@ private fun previewSteps(): SnapshotStateList<String> =
         "Mix and serve.",
     )
 
-@Preview(name = "TopBar", showBackground = true, widthDp = 360)
+@Preview(name = "TopBar - isSavingFalse", showBackground = true, widthDp = 360)
 @Composable
-private fun CreateRecipeTopBarPreview() {
+private fun CreateRecipeTopBarIsSavingFalsePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
                 CreateRecipeTopBar(
                     title = "New Recipe",
+                    isSaving = false,
                     onBack = {},
                     onSave = {},
                 )
@@ -50,6 +51,30 @@ private fun CreateRecipeTopBarPreview() {
         }
     }
 }
+
+@Preview(name = "TopBar - isSavingTrue", showBackground = true, widthDp = 360)
+@Composable
+private fun CreateRecipeTopBarIsSavingTruePreview() {
+    RecipeVaultTheme {
+        Scaffold(
+            topBar = {
+                CreateRecipeTopBar(
+                    title = "New Recipe",
+                    isSaving = true,
+                    onBack = {},
+                    onSave = {},
+                )
+            }
+        ) { padding ->
+            Spacer(
+                Modifier
+                    .padding(padding)
+                    .height(1.dp)
+            )
+        }
+    }
+}
+
 
 @Preview(name = "Form - Empty", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable

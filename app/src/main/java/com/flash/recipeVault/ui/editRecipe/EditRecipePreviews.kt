@@ -27,14 +27,38 @@ private fun previewStepsState() = mutableStateListOf(
     "Mix and serve.",
 )
 
-@Preview(name = "Edit TopBar", showBackground = true, widthDp = 360)
+@Preview(name = "Edit TopBar - isSavingFalse", showBackground = true, widthDp = 360)
 @Composable
-private fun EditRecipeTopBarPreview() {
+private fun EditRecipeTopBarIsSavingFalsePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
                 EditRecipeTopBar(
                     title = "Edit Recipe",
+                    isSaving = false,
+                    onBack = {},
+                    onSave = {},
+                )
+            }
+        ) { padding ->
+            Spacer(
+                Modifier
+                    .padding(padding)
+                    .height(1.dp)
+            )
+        }
+    }
+}
+
+@Preview(name = "Edit TopBar - isSavingTrue", showBackground = true, widthDp = 360)
+@Composable
+private fun EditRecipeTopBarIsSavingTruePreview() {
+    RecipeVaultTheme {
+        Scaffold(
+            topBar = {
+                EditRecipeTopBar(
+                    title = "Edit Recipe",
+                    isSaving = true,
                     onBack = {},
                     onSave = {},
                 )

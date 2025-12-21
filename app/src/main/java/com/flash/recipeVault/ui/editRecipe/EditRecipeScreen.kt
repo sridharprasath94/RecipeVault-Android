@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +38,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
@@ -69,6 +73,9 @@ fun EditRecipeScreen(
             alreadyAvailableImageUrl = null
         }
     )
+
+    val ui by vm.ui.collectAsState()
+
     LaunchedEffect(data?.recipe?.id) {
         val r = data ?: return@LaunchedEffect
         title = r.recipe.title
@@ -99,6 +106,7 @@ fun EditRecipeScreen(
             EditRecipeTopBar(
                 title = "Edit Recipe",
                 onBack = onBack,
+                isSaving = ui.isSaving,
                 onSave = {
                     error = null
                     val cleanTitle = title.trim()
@@ -133,6 +141,11 @@ fun EditRecipeScreen(
             )
         }
     ) { padding ->
+        if (ui.isSaving) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
         EditRecipeForm(
             padding = padding,
             isLoading = data == null,
@@ -167,6 +180,7 @@ fun EditRecipeScreen(
 @Composable
 fun EditRecipeTopBar(
     title: String,
+    isSaving: Boolean,
     onBack: () -> Unit,
     onSave: () -> Unit,
 ) {
@@ -178,7 +192,10 @@ fun EditRecipeTopBar(
             }
         },
         actions = {
-            TextButton(onClick = onSave) { Text("Save") }
+            TextButton(onClick = onSave, enabled = !isSaving) {
+                if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text("Save")
+            }
         }
     )
 }
