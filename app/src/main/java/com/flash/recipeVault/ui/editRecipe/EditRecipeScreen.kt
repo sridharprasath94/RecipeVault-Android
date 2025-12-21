@@ -36,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
@@ -70,7 +69,6 @@ fun EditRecipeScreen(
             alreadyAvailableImageUrl = null
         }
     )
-    val context = LocalContext.current
     LaunchedEffect(data?.recipe?.id) {
         val r = data ?: return@LaunchedEffect
         title = r.recipe.title
@@ -98,134 +96,211 @@ fun EditRecipeScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Edit Recipe") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, null) }
-                },
-                actions = {
-                    TextButton(onClick = {
-                        error = null
-                        val cleanTitle = title.trim()
-                        if (cleanTitle.isEmpty()) {
-                            error = "Title is required"
-                            return@TextButton
+            EditRecipeTopBar(
+                title = "Edit Recipe",
+                onBack = onBack,
+                onSave = {
+                    error = null
+                    val cleanTitle = title.trim()
+                    if (cleanTitle.isEmpty()) {
+                        error = "Title is required"
+                        return@EditRecipeTopBar
+                    }
+
+                    val ingredientTriples = ingredients
+                        .map {
+                            Triple(
+                                it.name.trim(),
+                                it.qty.trim().ifEmpty { null },
+                                it.unit.trim().ifEmpty { null }
+                            )
                         }
+                        .filter { it.first.isNotEmpty() }
 
-                        val ingredientTriples = ingredients
-                            .map {
-                                Triple(
-                                    it.name.trim(),
-                                    it.qty.trim().ifEmpty { null },
-                                    it.unit.trim().ifEmpty { null })
-                            }
-                            .filter { it.first.isNotEmpty() }
+                    val cleanSteps = steps.map { it.trim() }.filter { it.isNotEmpty() }
 
-                        val cleanSteps = steps.map { it.trim() }.filter { it.isNotEmpty() }
-
-                        vm.save(
-                            title = cleanTitle,
-                            description = desc.trim().ifEmpty { null },
-                            imageUri = pickedImageUri,
-                            imageUrl = null,
-                            ingredients = ingredientTriples,
-                            steps = cleanSteps,
-                            onDone = onBack,
-                            onError = { error = it }
-                        )
-                    }) { Text("Save") }
+                    vm.save(
+                        title = cleanTitle,
+                        description = desc.trim().ifEmpty { null },
+                        imageUri = pickedImageUri,
+                        imageUrl = null,
+                        ingredients = ingredientTriples,
+                        steps = cleanSteps,
+                        onDone = onBack,
+                        onError = { error = it }
+                    )
                 }
             )
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item { if (data == null) Text("Loading…") }
-
-            item {
-                OutlinedTextField(
-                    value = title, onValueChange = { title = it },
-                    label = { Text("Title") },
-                    modifier = Modifier.fillMaxWidth()
+        EditRecipeForm(
+            padding = padding,
+            isLoading = data == null,
+            title = title,
+            onTitleChange = { title = it },
+            desc = desc,
+            onDescChange = { desc = it },
+            pickedImageUri = pickedImageUri,
+            alreadyAvailableImageUrl = alreadyAvailableImageUrl,
+            onPickImage = {
+                pickImageLauncher.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                 )
+            },
+            onRemoveImage = {
+                pickedImageUri = null
+                alreadyAvailableImageUrl = null
+            },
+            ingredients = ingredients,
+            onIngredientChange = { idx, row -> ingredients[idx] = row },
+            onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
+            onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
+            steps = steps,
+            onStepChange = { idx, value -> steps[idx] = value },
+            onAddStep = { steps.add("") },
+            error = error,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditRecipeTopBar(
+    title: String,
+    onBack: () -> Unit,
+    onSave: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text(title) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
             }
+        },
+        actions = {
+            TextButton(onClick = onSave) { Text("Save") }
+        }
+    )
+}
 
-            item {
-                OutlinedTextField(
-                    value = desc, onValueChange = { desc = it },
-                    label = { Text("Description (optional)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+@Composable
+fun EditRecipeForm(
+    padding: PaddingValues,
+    isLoading: Boolean,
+    title: String,
+    onTitleChange: (String) -> Unit,
+    desc: String,
+    onDescChange: (String) -> Unit,
+    pickedImageUri: String?,
+    alreadyAvailableImageUrl: String?,
+    onPickImage: () -> Unit,
+    onRemoveImage: () -> Unit,
+    ingredients: androidx.compose.runtime.snapshots.SnapshotStateList<IngredientFormRow>,
+    onIngredientChange: (Int, IngredientFormRow) -> Unit,
+    onIngredientRemove: (Int) -> Unit,
+    onAddIngredient: () -> Unit,
+    steps: androidx.compose.runtime.snapshots.SnapshotStateList<String>,
+    onStepChange: (Int, String) -> Unit,
+    onAddStep: () -> Unit,
+    error: String?,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(padding)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            if (isLoading) {
+                Text("Loading…")
             }
+        }
 
-            item {
-                RecipeImageSection(
-                    pickedImageUri = pickedImageUri,
-                    imageUrl = alreadyAvailableImageUrl,
-                    onPickClick = {
-                        pickImageLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    onRemoveClick = {
-                        pickedImageUri = null
-                        alreadyAvailableImageUrl = null
-                    }
-                )
+        item {
+            RecipeEditFields(
+                title = title,
+                onTitleChange = onTitleChange,
+                desc = desc,
+                onDescChange = onDescChange,
+            )
+        }
+
+        item {
+            RecipeImageSection(
+                pickedImageUri = pickedImageUri,
+                imageUrl = alreadyAvailableImageUrl,
+                onPickClick = onPickImage,
+                onRemoveClick = onRemoveImage,
+            )
+        }
+
+        item { Text("Ingredients", style = MaterialTheme.typography.titleMedium) }
+
+        itemsIndexed(ingredients) { idx, row ->
+            IngredientRow(
+                row = row,
+                onChange = { onIngredientChange(idx, it) },
+                onRemove = { onIngredientRemove(idx) },
+            )
+        }
+
+        item {
+            OutlinedButton(onClick = onAddIngredient) { Text("Add ingredient") }
+        }
+
+        item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
+
+        itemsIndexed(steps) { idx, s ->
+            OutlinedTextField(
+                value = s,
+                onValueChange = { onStepChange(idx, it) },
+                label = { Text("Step ${idx + 1}") },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        item { OutlinedButton(onClick = onAddStep) { Text("Add step") } }
+
+        item {
+            if (error != null) {
+                Text(error, color = MaterialTheme.colorScheme.error)
             }
-
-            item { Text("Ingredients", style = MaterialTheme.typography.titleMedium) }
-
-            itemsIndexed(ingredients) { idx, row ->
-                IngredientRow(
-                    row = row,
-                    onChange = {
-                        ingredients[idx] = it
-                    },
-                    onRemove = { if (ingredients.size > 1) ingredients.removeAt(idx) }
-                )
-            }
-
-            item {
-                OutlinedButton(onClick = {
-                    ingredients.add(
-                        0,
-                        IngredientFormRow()
-                    )
-                }) { Text("Add ingredient") }
-            }
-
-            item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
-
-            itemsIndexed(steps) { idx, s ->
-                OutlinedTextField(
-                    value = s,
-                    onValueChange = { steps[idx] = it },
-                    label = { Text("Step ${idx + 1}") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-
-            item { OutlinedButton(onClick = { steps.add("") }) { Text("Add step") } }
-
-            item { if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error) }
         }
     }
 }
 
 @Composable
-private fun RecipeImageSection(
+fun RecipeEditFields(
+    title: String,
+    onTitleChange: (String) -> Unit,
+    desc: String,
+    onDescChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = title,
+        onValueChange = onTitleChange,
+        label = { Text("Title") },
+        modifier = Modifier.fillMaxWidth()
+    )
+
+    Spacer(Modifier.height(12.dp))
+
+    OutlinedTextField(
+        value = desc,
+        onValueChange = onDescChange,
+        label = { Text("Description (optional)") },
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Composable
+fun RecipeImageSection(
     pickedImageUri: String?,
     imageUrl: String?,
     onPickClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
-    // Prefer the freshly picked local image over the saved Base64.
     val hasAnyImage by remember(pickedImageUri, imageUrl) {
         derivedStateOf { !pickedImageUri.isNullOrBlank() || !imageUrl.isNullOrBlank() }
     }

@@ -61,7 +61,7 @@ private fun CreateRecipeFormPreview_Empty() {
             onTitleChange = {},
             desc = "",
             onDescChange = {},
-            imageUri = "sample_image",
+            imageUri = null,
             onPickImage = {},
             onRemoveImage = {},
             ingredients = remember { mutableStateListOf(IngredientFormRow()) },
@@ -89,7 +89,7 @@ private fun CreateRecipeFormPreview_Filled() {
             onTitleChange = {},
             desc = "Spicy tomato pasta with garlic and chili flakes.",
             onDescChange = {},
-            imageUri = "sample_image",
+            imageUri = null,
             onPickImage = {},
             onRemoveImage = {},
             ingredients = ingredients,
@@ -122,7 +122,7 @@ private fun RecipeBasicFieldsPreview() {
 private fun RecipeImagePickerSectionPreview_NoImage() {
     RecipeVaultTheme {
         RecipeImagePickerSection(
-            imageUri = "sample_image",
+            imageUri = null,
             onPickImage = {},
             onRemoveImage = {},
         )
@@ -132,6 +132,8 @@ private fun RecipeImagePickerSectionPreview_NoImage() {
 @Preview(name = "Image Picker - With Image", showBackground = true, widthDp = 360)
 @Composable
 private fun RecipeImagePickerSectionPreview_WithImage() {
+    // Note: Android Studio Preview cannot access real device URIs.
+    // This is just to preview the layout; the image may not render.
     RecipeVaultTheme {
         RecipeImagePickerSection(
             imageUri = "content://com.example.fake/image/1",
@@ -151,7 +153,7 @@ private fun CreateRecipeFormPreview_Error() {
             onTitleChange = {},
             desc = "",
             onDescChange = {},
-            imageUri = "sample_image",
+            imageUri = null,
             onPickImage = {},
             onRemoveImage = {},
             ingredients = remember { mutableStateListOf(IngredientFormRow()) },
