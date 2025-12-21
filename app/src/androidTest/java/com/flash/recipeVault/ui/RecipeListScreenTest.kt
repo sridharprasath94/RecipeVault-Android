@@ -8,7 +8,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flash.recipeVault.data.RecipeDatabase
 import com.flash.recipeVault.data.RecipeRepository
-import com.flash.recipeVault.ui.theme.RecipeSaverTheme
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 import org.junit.Rule
 import org.junit.Test
 
@@ -24,7 +24,7 @@ class RecipeListScreenTest {
         val repo = RecipeRepository(db.recipeDao())
 
         rule.setContent {
-            RecipeSaverTheme {
+            RecipeVaultTheme {
                 RecipeListScreenForTest(repo = repo)
             }
         }

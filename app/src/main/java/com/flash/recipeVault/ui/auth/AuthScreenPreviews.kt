@@ -8,7 +8,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import com.flash.recipeVault.ui.components.StandardTextField
-import com.flash.recipeVault.ui.theme.RecipeSaverTheme
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 
 
@@ -39,7 +39,7 @@ fun StandardTextFieldPasswordPreview() {
 @Preview(name = "Auth Form - Logged Out", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 fun AuthFormContentPreviewLoggedOut() {
-    RecipeSaverTheme {
+    RecipeVaultTheme {
         Scaffold { padding ->
             AuthFormContent(
                 padding = padding,
@@ -60,7 +60,7 @@ fun AuthFormContentPreviewLoggedOut() {
 @Preview(name = "Auth Form - Loading", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 fun AuthFormContentPreviewLoading() {
-    RecipeSaverTheme {
+    RecipeVaultTheme {
         Scaffold { padding ->
             AuthFormContent(
                 padding = padding,
@@ -81,7 +81,7 @@ fun AuthFormContentPreviewLoading() {
 @Preview(name = "Auth Form - Error", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 fun AuthFormContentPreviewError() {
-    RecipeSaverTheme {
+    RecipeVaultTheme {
         Scaffold { padding ->
             AuthFormContent(
                 padding = padding,
