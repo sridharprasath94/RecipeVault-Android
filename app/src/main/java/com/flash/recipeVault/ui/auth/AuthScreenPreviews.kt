@@ -1,0 +1,101 @@
+package com.flash.recipeVault.ui.auth
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
+import com.flash.recipeVault.ui.components.StandardTextField
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
+
+
+
+@Preview(name = "Email Field", showBackground = true)
+@Composable
+fun StandardTextFieldEmailPreview() {
+    StandardTextField(
+        value = "user@example.com",
+        onValueChange = {},
+        label = "Email",
+        keyboardType = KeyboardType.Email,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Preview(name = "Password Field", showBackground = true)
+@Composable
+fun StandardTextFieldPasswordPreview() {
+    StandardTextField(
+        value = "password",
+        onValueChange = {},
+        label = "Password",
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Preview(name = "Auth Form - Logged Out", showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+fun AuthFormContentPreviewLoggedOut() {
+    RecipeVaultTheme {
+        Scaffold { padding ->
+            AuthFormContent(
+                padding = padding,
+                email = "",
+                onEmailChange = {},
+                password = "",
+                onPasswordChange = {},
+                state = AuthState.LoggedOut,
+                onDismissError = {},
+                onSignIn = {},
+                onSignUp = {},
+                onGoogleSignIn = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Auth Form - Loading", showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+fun AuthFormContentPreviewLoading() {
+    RecipeVaultTheme {
+        Scaffold { padding ->
+            AuthFormContent(
+                padding = padding,
+                email = "user@example.com",
+                onEmailChange = {},
+                password = "password",
+                onPasswordChange = {},
+                state = AuthState.Loading,
+                onDismissError = {},
+                onSignIn = {},
+                onSignUp = {},
+                onGoogleSignIn = {},
+            )
+        }
+    }
+}
+
+@Preview(name = "Auth Form - Error", showBackground = true, widthDp = 360, heightDp = 720)
+@Composable
+fun AuthFormContentPreviewError() {
+    RecipeVaultTheme {
+        Scaffold { padding ->
+            AuthFormContent(
+                padding = padding,
+                email = "user@example.com",
+                onEmailChange = {},
+                password = "password",
+                onPasswordChange = {},
+                state = AuthState.Error("Invalid credentials"),
+                onDismissError = {},
+                onSignIn = {},
+                onSignUp = {},
+                onGoogleSignIn = {},
+            )
+        }
+    }
+}
+

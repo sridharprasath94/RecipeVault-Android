@@ -8,9 +8,17 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.flash.recipeVault.data.RecipeDatabase
 import com.flash.recipeVault.data.RecipeRepository
-import com.flash.recipeVault.ui.theme.RecipeSaverTheme
+import com.flash.recipeVault.firebase.FirebaseImageStorage
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 import org.junit.Rule
 import org.junit.Test
+
+class FakeFirebaseImageStorage : FirebaseImageStorage(
+    context = ApplicationProvider.getApplicationContext(),
+    auth = null
+) {
+    // Override methods if needed for testing
+}
 
 class RecipeListScreenTest {
 
@@ -20,11 +28,12 @@ class RecipeListScreenTest {
     @Test
     fun showsEmptyState() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
-        val db = Room.inMemoryDatabaseBuilder(context, RecipeDatabase::class.java).allowMainThreadQueries().build()
-        val repo = RecipeRepository(db.recipeDao())
+        val db = Room.inMemoryDatabaseBuilder(context, RecipeDatabase::class.java)
+            .allowMainThreadQueries().build()
+        val repo = RecipeRepository(db.recipeDao(), imageStorage = FakeFirebaseImageStorage())
 
         rule.setContent {
-            RecipeSaverTheme {
+            RecipeVaultTheme {
                 RecipeListScreenForTest(repo = repo)
             }
         }

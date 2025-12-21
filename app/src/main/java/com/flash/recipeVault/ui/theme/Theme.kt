@@ -33,7 +33,7 @@ private val DarkColors = darkColorScheme(
 )
 
 @Composable
-fun RecipeSaverTheme(
+fun RecipeVaultTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit

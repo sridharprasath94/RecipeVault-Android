@@ -13,7 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.flash.recipeVault.data.RecipeRepository
-import com.flash.recipeVault.vm.RecipeListViewModel
+import com.flash.recipeVault.ui.recipeList.RecipeListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

@@ -1,16 +1,22 @@
-package com.flash.recipeVault.vm
+package com.flash.recipeVault.ui.createRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.ui.components.IngredientFormRow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-
+data class CreateRecipeUiState(
+    val isSaving: Boolean = false,
+    val error: String? = null,
+)
 class CreateRecipeViewModel(
     private val repo: RecipeRepository
 ) : ViewModel() {
-
+    private val _ui = MutableStateFlow(CreateRecipeUiState())
+    val ui: StateFlow<CreateRecipeUiState> = _ui
     private fun validate(
         title: String,
         ingredients: List<Triple<String, String?, String?>>,
@@ -34,7 +40,7 @@ class CreateRecipeViewModel(
         title: String,
         description: String?,
         imageUri: String?,
-        imageUrl : String? ,
+        imageUrl : String?,
         ingredients: List<IngredientFormRow>,
         steps: List<String>,
         onDone: (Long) -> Unit,
@@ -64,6 +70,7 @@ class CreateRecipeViewModel(
 
         viewModelScope.launch {
             try {
+                _ui.value = _ui.value.copy(isSaving = true, error = null)
                 val id = repo.createRecipe(
                     title = cleanTitle,
                     description = cleanDesc,
@@ -75,6 +82,9 @@ class CreateRecipeViewModel(
                 onDone(id)
             } catch (e: Exception) {
                 onError(e.message ?: "Failed to save recipe")
+                _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")
+            }finally {
+                _ui.value = _ui.value.copy(isSaving = false)
             }
         }
     }
