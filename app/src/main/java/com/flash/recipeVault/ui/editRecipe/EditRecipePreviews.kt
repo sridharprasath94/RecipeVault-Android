@@ -14,7 +14,6 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
-
 private fun previewIngredientsState() = mutableStateListOf(
     IngredientFormRow(name = "Pasta", qty = "200", unit = "g"),
     IngredientFormRow(name = "Tomato", qty = "2", unit = "pcs"),
