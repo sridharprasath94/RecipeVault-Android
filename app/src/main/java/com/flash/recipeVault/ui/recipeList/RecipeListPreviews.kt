@@ -16,7 +16,7 @@ private fun previewRecipes(): List<RecipeEntity> = listOf(
         id = 1,
         title = "Pasta Arrabbiata",
         description = "Spicy tomato pasta with garlic and chili flakes.",
-        imageUrl = null,
+        imageUrl = "https://example.com/sample.jpg",
         createdAt = 0L,
         updatedAt = 0L,
     ),
@@ -55,9 +55,11 @@ private fun RecipeListTopBarPreview_Closed() {
             )
         }
     ) { padding ->
-        Box(Modifier
-            .padding(padding)
-            .fillMaxSize())
+        Box(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+        )
     }
 }
 
@@ -77,9 +79,11 @@ private fun RecipeListTopBarPreview_Open() {
             )
         }
     ) { padding ->
-        Box(Modifier
-            .padding(padding)
-            .fillMaxSize())
+        Box(
+            Modifier
+                .padding(padding)
+                .fillMaxSize()
+        )
     }
 }
 
