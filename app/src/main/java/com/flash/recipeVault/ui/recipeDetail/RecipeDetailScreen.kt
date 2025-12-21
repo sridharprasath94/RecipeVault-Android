@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui
+package com.flash.recipeVault.ui.recipeDetail
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.util.RecipeAsyncImage
-import com.flash.recipeVault.vm.RecipeDetailViewModel
+import com.flash.recipeVault.ui.recipeDetail.RecipeDetailViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

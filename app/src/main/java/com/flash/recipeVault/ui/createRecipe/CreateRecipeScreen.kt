@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui
+package com.flash.recipeVault.ui.createRecipe
 
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
@@ -13,16 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.Image
-import coil.compose.rememberAsyncImagePainter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
-import com.flash.recipeVault.vm.CreateRecipeViewModel
+import com.flash.recipeVault.ui.createRecipe.CreateRecipeViewModel
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import com.flash.recipeVault.util.RecipeImage
 
@@ -106,7 +103,7 @@ fun CreateRecipeScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = {
                         pickImageLauncher.launch(
-                            androidx.activity.result.PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                         )
                     }) { Text(if (imageUri == null) "Pick image (optional)" else "Change image") }
 

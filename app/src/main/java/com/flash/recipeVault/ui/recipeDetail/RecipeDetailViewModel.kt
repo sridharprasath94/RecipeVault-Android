@@ -1,4 +1,4 @@
-package com.flash.recipeVault.vm
+package com.flash.recipeVault.ui.recipeDetail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -13,7 +13,7 @@ class RecipeDetailViewModel(
 ) : ViewModel() {
 
     val recipe = repo.observeRecipe(recipeId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5_000), null)
 
     fun delete() = viewModelScope.launch { repo.deleteRecipe(recipeId) }
 }

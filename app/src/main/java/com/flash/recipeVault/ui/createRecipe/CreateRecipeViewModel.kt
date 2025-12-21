@@ -1,11 +1,10 @@
-package com.flash.recipeVault.vm
+package com.flash.recipeVault.ui.createRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import kotlinx.coroutines.launch
-
 
 class CreateRecipeViewModel(
     private val repo: RecipeRepository
@@ -34,7 +33,7 @@ class CreateRecipeViewModel(
         title: String,
         description: String?,
         imageUri: String?,
-        imageUrl : String? ,
+        imageUrl : String?,
         ingredients: List<IngredientFormRow>,
         steps: List<String>,
         onDone: (Long) -> Unit,

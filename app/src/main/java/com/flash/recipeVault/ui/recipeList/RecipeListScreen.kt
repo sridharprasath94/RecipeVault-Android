@@ -1,6 +1,6 @@
 @file:Suppress("DEPRECATION")
 
-package com.flash.recipeVault.ui
+package com.flash.recipeVault.ui.recipeList
 
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -51,7 +51,7 @@ import com.flash.recipeVault.R
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
-import com.flash.recipeVault.vm.RecipeListViewModel
+import com.flash.recipeVault.ui.recipeList.RecipeListViewModel
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN

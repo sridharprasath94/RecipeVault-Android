@@ -1,4 +1,4 @@
-package com.flash.recipeVault.vm
+package com.flash.recipeVault.ui.recipeList
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class RecipeListViewModel(private val repo: RecipeRepository,
                           private val auth: FirebaseAuth = FirebaseAuth.getInstance()) : ViewModel() {
     val recipes = repo.observeRecipes()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5_000), emptyList())
 
     fun delete(id: Long) = viewModelScope.launch { repo.deleteRecipe(id) }
 
