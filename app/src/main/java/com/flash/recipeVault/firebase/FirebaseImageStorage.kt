@@ -11,12 +11,12 @@ import android.graphics.BitmapFactory
 import java.io.ByteArrayOutputStream
 import androidx.core.graphics.scale
 
-class FirebaseImageStorage(
+open class FirebaseImageStorage(
     private val context: Context,
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
+    private val auth: FirebaseAuth? = FirebaseAuth.getInstance(),
     private val storage: FirebaseStorage = FirebaseStorage.getInstance(),
 ) {
-    private fun uid(): String = auth.currentUser?.uid ?: error("User not logged in")
+    private fun uid(): String = auth?.currentUser?.uid ?: error("User not logged in")
 
     /**
      * Uploads image to: users/<uid>/recipes/<recipeId>/<random>.jpg
