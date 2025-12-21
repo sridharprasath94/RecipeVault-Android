@@ -47,11 +47,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.compose.ui.tooling.preview.Preview
 import com.flash.recipeVault.R
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.flash.recipeVault.ui.recipeList.RecipeListViewModel
+import com.flash.recipeVault.data.RecipeEntity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
@@ -107,34 +109,23 @@ fun RecipeListScreen(
         }
     )
 
-    ConfirmationDialog(
-        show = showLogoutDialog,
-        title = "Log out?",
-        message = "Do you want to log out from this account?",
-        confirmButtonText = "Log out",
-        onConfirm = {
+    RecipeListDialogs(
+        showLogoutDialog = showLogoutDialog,
+        onDismissLogout = { showLogoutDialog = false },
+        onConfirmLogout = {
             showLogoutDialog = false
             vm.signOut()
             container.signOut()
             googleClient.signOut()
             onLogout()
         },
-        onDismiss = {
-            showLogoutDialog = false
-        }
-    )
-
-    ConfirmationDialog(
-        show = deleteConfirmationDialog,
-        title = "Delete recipe?",
-        message = "This action cannot be undone.",
-        confirmButtonText = "Delete",
-        onConfirm = {
-            deleteRecipeId?.let { vm.delete(it) }
+        showDeleteDialog = deleteConfirmationDialog,
+        onDismissDelete = {
             deleteRecipeId = null
             deleteConfirmationDialog = false
         },
-        onDismiss = {
+        onConfirmDelete = {
+            deleteRecipeId?.let { vm.delete(it) }
             deleteRecipeId = null
             deleteConfirmationDialog = false
         }
@@ -142,133 +133,235 @@ fun RecipeListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Recipes") },
-                actions = {
-                    IconButton(onClick = { showMenu = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+            RecipeListTopBar(
+                showMenu = showMenu,
+                onOpenMenu = { showMenu = true },
+                onDismissMenu = { showMenu = false },
+                onSyncWithCloud = {
+                    showMenu = false
+                    scope.launch { container.firestoreSyncServiceForCurrentUser().syncNow() }
+                },
+                onBackup = {
+                    showMenu = false
+                    backupLauncher.launch("recipes_backup_${System.currentTimeMillis()}.json")
+                },
+                onShare = {
+                    showMenu = false
+                    scope.launch {
+                        val json = repo.exportAllAsJson()
+                        val file = File(
+                            context.cacheDir,
+                            "recipes_share_${System.currentTimeMillis()}.json"
+                        )
+                        file.writeText(json, Charsets.UTF_8)
+                        val uri = FileProvider.getUriForFile(
+                            context,
+                            context.packageName + ".fileprovider",
+                            file
+                        )
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/json"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Share backup"))
                     }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Sync with Cloud") },
-                            onClick = {
-                                showMenu = false
-                                scope.launch {
-                                    container.firestoreSyncServiceForCurrentUser().syncNow()
-                                }
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Backup") },
-                            onClick = {
-                                showMenu = false
-                                backupLauncher.launch("recipes_backup_${System.currentTimeMillis()}.json")
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = {
-                                showMenu = false
-                                scope.launch {
-                                    val json = repo.exportAllAsJson()
-                                    val file = File(
-                                        context.cacheDir,
-                                        "recipes_share_${System.currentTimeMillis()}.json"
-                                    )
-                                    file.writeText(json, Charsets.UTF_8)
-                                    val uri = FileProvider.getUriForFile(
-                                        context,
-                                        context.packageName + ".fileprovider",
-                                        file
-                                    )
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "application/json"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    context.startActivity(
-                                        Intent.createChooser(
-                                            intent,
-                                            "Share backup"
-                                        )
-                                    )
-                                }
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Log out") },
-                            onClick = {
-                                showMenu = false
-                                showLogoutDialog = true
-                            }
-                        )
-                    }
+                },
+                onLogoutClick = {
+                    showMenu = false
+                    showLogoutDialog = true
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAdd) { Icon(Icons.Default.Add, null) }
+            FloatingActionButton(onClick = onAdd) {
+                Icon(Icons.Default.Add, contentDescription = "Add")
+            }
         }
     ) { padding ->
-        if (recipes.isEmpty()) {
-            Box(
-                Modifier
-                    .padding(padding)
-                    .fillMaxSize(), contentAlignment = Alignment.Center
-            ) {
-                Text("No recipes yet. Tap + to add one.")
+        RecipeListBody(
+            padding = padding,
+            recipes = recipes,
+            onOpen = onOpen,
+            onDeleteClick = { id ->
+                deleteRecipeId = id
+                deleteConfirmationDialog = true
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecipeListTopBar(
+    showMenu: Boolean,
+    onOpenMenu: () -> Unit,
+    onDismissMenu: () -> Unit,
+    onSyncWithCloud: () -> Unit,
+    onBackup: () -> Unit,
+    onShare: () -> Unit,
+    onLogoutClick: () -> Unit,
+) {
+    TopAppBar(
+        title = { Text("Recipes") },
+        actions = {
+            IconButton(onClick = onOpenMenu) {
+                Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+            }
+
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = onDismissMenu
             ) {
-                items(recipes) { r ->
-                    Card(Modifier.fillMaxWidth()) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(
-                                Modifier
-                                    .weight(1f)
-                                    .clickable { onOpen(r.id) }) {
-                                Text(r.title, style = MaterialTheme.typography.titleMedium)
-                                if (!r.description.isNullOrBlank()) {
-                                    Spacer(Modifier.height(4.dp))
-                                    Text(r.description, style = MaterialTheme.typography.bodyMedium)
-                                }
-                            }
+                DropdownMenuItem(
+                    text = { Text("Sync with Cloud") },
+                    onClick = onSyncWithCloud
+                )
 
+                DropdownMenuItem(
+                    text = { Text("Backup") },
+                    onClick = onBackup
+                )
 
-                            r.imageUrl?.let { url ->
-                                RecipeAsyncImage(url)
-                            }
+                DropdownMenuItem(
+                    text = { Text("Share") },
+                    onClick = onShare
+                )
 
-                            IconButton(onClick = {
-                                deleteConfirmationDialog = true
-                                deleteRecipeId = r.id
-                            }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete")
-                            }
-                        }
-                    }
-                }
+                DropdownMenuItem(
+                    text = { Text("Log out") },
+                    onClick = onLogoutClick
+                )
+            }
+        }
+    )
+}
+
+@Composable
+fun RecipeListBody(
+    padding: PaddingValues,
+    recipes: List<RecipeEntity>,
+    onOpen: (Long) -> Unit,
+    onDeleteClick: (Long) -> Unit,
+) {
+    if (recipes.isEmpty()) {
+        Box(
+            Modifier
+                .padding(padding)
+                .fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("No recipes yet. Tap + to add one.")
+        }
+    } else {
+        RecipeList(
+            padding = padding,
+            recipes = recipes,
+            onOpen = onOpen,
+            onDeleteClick = onDeleteClick,
+        )
+    }
+}
+
+@Composable
+fun RecipeList(
+    padding: PaddingValues,
+    recipes: List<RecipeEntity>,
+    onOpen: (Long) -> Unit,
+    onDeleteClick: (Long) -> Unit,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(padding)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        items(recipes) { recipe ->
+            RecipeListItem(
+                recipe = recipe,
+                onOpen = { onOpen(recipe.id) },
+                onDeleteClick = { onDeleteClick(recipe.id) },
+            )
+        }
+    }
+}
+
+@Composable
+fun RecipeListItem(
+    recipe: RecipeEntity,
+    onOpen: () -> Unit,
+    onDeleteClick: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            RecipeListItemText(
+                title = recipe.title,
+                description = recipe.description,
+                onOpen = onOpen,
+                modifier = Modifier.weight(1f),
+            )
+
+            recipe.imageUrl?.let { url ->
+                RecipeAsyncImage(url)
+            }
+
+            IconButton(onClick = onDeleteClick) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete")
             }
         }
     }
 }
 
+@Composable
+fun RecipeListItemText(
+    title: String,
+    description: String?,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .clickable(onClick = onOpen)
+    ) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        if (!description.isNullOrBlank()) {
+            Spacer(Modifier.height(4.dp))
+            Text(description, style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
 
+@Composable
+fun RecipeListDialogs(
+    showLogoutDialog: Boolean,
+    onDismissLogout: () -> Unit,
+    onConfirmLogout: () -> Unit,
+    showDeleteDialog: Boolean,
+    onDismissDelete: () -> Unit,
+    onConfirmDelete: () -> Unit,
+) {
+    ConfirmationDialog(
+        show = showLogoutDialog,
+        title = "Log out?",
+        message = "Do you want to log out from this account?",
+        confirmButtonText = "Log out",
+        onConfirm = onConfirmLogout,
+        onDismiss = onDismissLogout,
+    )
+
+    ConfirmationDialog(
+        show = showDeleteDialog,
+        title = "Delete recipe?",
+        message = "This action cannot be undone.",
+        confirmButtonText = "Delete",
+        onConfirm = onConfirmDelete,
+        onDismiss = onDismissDelete,
+    )
+}
