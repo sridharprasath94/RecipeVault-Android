@@ -26,7 +26,7 @@ class PeriodicFirebaseBackupWorker(
             imageStorage = imageStorage
         )
         return try {
-            FirestoreSyncService(applicationContext, repo).syncNow()
+            FirestoreSyncService(repo).syncNow()
             Result.success()
         } catch (e: Exception) {
             Result.retry()

@@ -299,12 +299,17 @@ fun RecipeListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RecipeListItemText(
-                title = recipe.title,
-                description = recipe.description,
-                onOpen = onOpen,
-                modifier = Modifier.weight(1f),
-            )
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clickable(onClick = onOpen)
+            ) {
+                Text(recipe.title, style = MaterialTheme.typography.titleMedium)
+                if (!recipe.description.isNullOrBlank()) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
 
             recipe.imageUrl?.let { url ->
                 RecipeAsyncImage(url)
@@ -313,25 +318,6 @@ fun RecipeListItem(
             IconButton(onClick = onDeleteClick) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")
             }
-        }
-    }
-}
-
-@Composable
-fun RecipeListItemText(
-    title: String,
-    description: String?,
-    onOpen: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier
-            .clickable(onClick = onOpen)
-    ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        if (!description.isNullOrBlank()) {
-            Spacer(Modifier.height(4.dp))
-            Text(description, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

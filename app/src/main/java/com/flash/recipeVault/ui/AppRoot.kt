@@ -8,6 +8,7 @@ import com.google.firebase.firestore.ListenerRegistration
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -28,12 +29,10 @@ fun AppRoot(container: AppContainer) {
         val authVm = remember { AuthViewModel() }
         val state by authVm.state.collectAsState()
 
-        // Only care about uid for lifecycle side-effects
         val uid = (state as? AuthState.LoggedIn)?.uid
 
         val realtimeRegState = remember { mutableStateOf<ListenerRegistration?>(null) }
 
-        // Start/stop realtime listener strictly per uid
         DisposableEffect(uid) {
             if (uid != null) {
                 realtimeRegState.value =
@@ -62,12 +61,15 @@ fun AppRoot(container: AppContainer) {
             }
 
             composable("list") {
-//              LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
+                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
                 RecipeListScreen(
                     container = container,
                     onAdd = { nav.navigate("create") },
                     onOpen = { id -> nav.navigate("detail/$id") },
-                    onLogout = { nav.navigate("login") { popUpTo("list") { inclusive = true } } }
+                    onLogout = {
+
+                        nav.navigate("login") { popUpTo("list") { inclusive = true } }
+                    }
                 )
             }
             composable("create") {
