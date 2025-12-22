@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui.editRecipe
+package com.flash.recipeVault.ui.screens.editRecipe
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer

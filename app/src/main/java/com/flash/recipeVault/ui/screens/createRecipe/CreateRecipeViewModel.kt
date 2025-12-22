@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui.createRecipe
+package com.flash.recipeVault.ui.screens.createRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

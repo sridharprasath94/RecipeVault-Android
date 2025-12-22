@@ -12,14 +12,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.flash.recipeVault.di.AppContainer
-import com.flash.recipeVault.ui.auth.AuthScreen
-import com.flash.recipeVault.ui.createRecipe.CreateRecipeScreen
+import com.flash.recipeVault.ui.screens.auth.AuthScreen
+import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeScreen
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
-import com.flash.recipeVault.ui.auth.AuthState
-import com.flash.recipeVault.ui.auth.AuthViewModel
-import com.flash.recipeVault.ui.editRecipe.EditRecipeScreen
-import com.flash.recipeVault.ui.recipeDetail.RecipeDetailScreen
-import com.flash.recipeVault.ui.recipeList.RecipeListScreen
+import com.flash.recipeVault.ui.screens.auth.AuthState
+import com.flash.recipeVault.ui.screens.auth.AuthViewModel
+import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
+import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
 
 @Composable
 fun AppRoot(container: AppContainer) {

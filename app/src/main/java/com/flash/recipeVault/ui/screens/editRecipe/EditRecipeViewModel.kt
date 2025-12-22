@@ -1,9 +1,8 @@
-package com.flash.recipeVault.ui.editRecipe
+package com.flash.recipeVault.ui.screens.editRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeRepository
-import com.flash.recipeVault.ui.createRecipe.CreateRecipeUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

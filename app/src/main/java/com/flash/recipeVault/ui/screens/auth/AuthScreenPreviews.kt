@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui.auth
+package com.flash.recipeVault.ui.screens.auth
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Scaffold

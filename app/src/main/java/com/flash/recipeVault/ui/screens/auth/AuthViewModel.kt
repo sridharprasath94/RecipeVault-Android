@@ -1,6 +1,6 @@
 @file:Suppress("DEPRECATION")
 
-package com.flash.recipeVault.ui.auth
+package com.flash.recipeVault.ui.screens.auth
 
 import android.app.Activity
 import android.content.Intent

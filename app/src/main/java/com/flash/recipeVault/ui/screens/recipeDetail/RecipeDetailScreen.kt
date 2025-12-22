@@ -1,4 +1,4 @@
-package com.flash.recipeVault.ui.recipeDetail
+package com.flash.recipeVault.ui.screens.recipeDetail
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box

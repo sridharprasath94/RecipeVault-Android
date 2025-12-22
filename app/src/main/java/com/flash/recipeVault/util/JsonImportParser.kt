@@ -1,4 +1,4 @@
-package com.flash.recipeVault.util
+package com.flash.recipeVault.utilFz
 
 import com.flash.recipeVault.data.IngredientEntity
 import com.flash.recipeVault.data.RecipeEntity

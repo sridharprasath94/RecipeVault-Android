@@ -1,6 +1,8 @@
 package com.flash.recipeVault.data
 
 import com.flash.recipeVault.firebase.FirebaseImageStorage
+import com.flash.recipeVault.util.SimpleJson
+import com.flash.recipeVault.utilFz.JsonImportParser
 
 class RecipeRepository(
     private val dao: RecipeDao,
@@ -53,7 +55,8 @@ class RecipeRepository(
 
         // If caller didn't provide an URL but did provide a picked local imageUri, upload it and persist the download URL.
         if (imageUrl.isNullOrBlank() && !imageUri.isNullOrBlank()) {
-            val downloadUrl = imageStorage.uploadRecipeImage(recipeId = recipeId, localUri = imageUri)
+            val downloadUrl =
+                imageStorage.uploadRecipeImage(recipeId = recipeId, localUri = imageUri)
             dao.updateImageUrl(
                 id = recipeId,
                 imageUrl = downloadUrl,
@@ -200,12 +203,12 @@ class RecipeRepository(
                 }
             )
         }
-        return com.flash.recipeVault.util.SimpleJson.encode(export)
+        return SimpleJson.encode(export)
     }
 
 
     suspend fun importFromJson(json: String) {
-        val parsed = com.flash.recipeVault.util.JsonImportParser.parse(json)
+        val parsed = JsonImportParser.parse(json)
         dao.clearAll()
         dao.insertRecipes(parsed.recipes)
         dao.insertIngredients(parsed.ingredients)
