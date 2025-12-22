@@ -3,6 +3,8 @@
 package com.flash.recipeVault.ui.screens.auth
 
 import android.content.Context
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +15,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -30,7 +35,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -64,6 +71,16 @@ fun AuthScreen(
         authVm.onGoogleResult(result.resultCode, result.data)
     }
 
+    val errorMessage = (state as? AuthState.Error)?.message
+
+    LaunchedEffect(errorMessage) {
+        if (!errorMessage.isNullOrBlank()) {
+            Log.d("AuthScreen", "Authentication error: $errorMessage")
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            authVm.clearError()
+        }
+    }
+
     LaunchedEffect(uid) {
         if (uid != null) onLoggedIn()
     }
@@ -85,7 +102,6 @@ fun AuthScreen(
             password = form.password,
             onPasswordChange = authVm::onPasswordChange,
             state = state,
-            onDismissError = { authVm.clearError() },
             onSignIn = authVm::submitSignIn,
             onSignUp = authVm::submitSignUp,
             onGoogleSignIn = {
@@ -114,7 +130,6 @@ fun AuthFormContent(
     password: String,
     onPasswordChange: (String) -> Unit,
     state: AuthState,
-    onDismissError: () -> Unit,
     onSignIn: () -> Unit,
     onSignUp: () -> Unit,
     onGoogleSignIn: () -> Unit,
@@ -148,15 +163,8 @@ fun AuthFormContent(
             singleLine = true,
         )
 
-        when (state) {
-            is AuthState.Error -> {
-                Text(state.message)
-                TextButton(onClick = onDismissError) { Text("Dismiss") }
-            }
-
-            is AuthState.Loading -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            is AuthState.LoggedIn -> Unit
-            is AuthState.LoggedOut -> Unit
+        if (state is AuthState.Loading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
         }
 
         Spacer(Modifier.height(60.dp))
@@ -171,10 +179,32 @@ fun AuthFormContent(
             modifier = Modifier.fillMaxWidth()
         ) { Text("Create account") }
 
-        OutlinedButton(
+        GoogleSignInButton(
             onClick = onGoogleSignIn,
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Sign in with Google") }
+        )
+    }
+}
+
+@Composable
+fun GoogleSignInButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_google_logo),
+            contentDescription = "Google logo",
+            tint = Color.Unspecified,
+            modifier = Modifier.size(20.dp)
+        )
+
+        Spacer(Modifier.width(12.dp))
+
+        Text("Sign in with Google")
     }
 }
 

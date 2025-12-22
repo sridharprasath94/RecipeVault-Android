@@ -17,8 +17,6 @@ class MainActivity : ComponentActivity() {
         FirebaseApp.initializeApp(this)
         super.onCreate(savedInstanceState)
         val container = AppContainer(this)
-
-        // Periodic cloud backup: runs only when a user is logged in.
         val request =
             PeriodicWorkRequestBuilder<PeriodicFirebaseBackupWorker>(6, TimeUnit.HOURS).build()
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(

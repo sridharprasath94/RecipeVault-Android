@@ -139,7 +139,7 @@ class AuthViewModel(
         if (resultCode != Activity.RESULT_OK) {
             setError(
                 if (resultCode == Activity.RESULT_CANCELED) {
-                    "Google sign-in was cancelled. Check Firebase Google provider + SHA-1 + google-services.json."
+                    "Google sign-in was cancelled."
                 } else {
                     "Google sign-in failed (resultCode=$resultCode)."
                 }

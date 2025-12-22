@@ -23,10 +23,7 @@ open class FirebaseImageStorage(
      * Returns public downloadUrl (String) to store in Firestore/Room.
      */
     suspend fun uploadRecipeImage(recipeId: Long, localUri: String): String {
-        val uri = localUri.toUri()
-
-        // Decode bitmap from content resolver
-        val bitmap = context.contentResolver.openInputStream(uri).use { input ->
+        val bitmap = context.contentResolver.openInputStream(localUri.toUri()).use { input ->
             BitmapFactory.decodeStream(input)
         } ?: error("Failed to decode image")
 

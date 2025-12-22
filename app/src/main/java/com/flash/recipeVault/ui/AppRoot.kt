@@ -28,12 +28,10 @@ fun AppRoot(container: AppContainer) {
         val authVm = remember { AuthViewModel() }
         val state by authVm.state.collectAsState()
 
-        // Only care about uid for lifecycle side-effects
         val uid = (state as? AuthState.LoggedIn)?.uid
 
         val realtimeRegState = remember { mutableStateOf<ListenerRegistration?>(null) }
 
-        // Start/stop realtime listener strictly per uid
         DisposableEffect(uid) {
             if (uid != null) {
                 realtimeRegState.value =
@@ -67,7 +65,10 @@ fun AppRoot(container: AppContainer) {
                     container = container,
                     onAdd = { nav.navigate("create") },
                     onOpen = { id -> nav.navigate("detail/$id") },
-                    onLogout = { nav.navigate("login") { popUpTo("list") { inclusive = true } } }
+                    onLogout = {
+
+                        nav.navigate("login") { popUpTo("list") { inclusive = true } }
+                    }
                 )
             }
             composable("create") {

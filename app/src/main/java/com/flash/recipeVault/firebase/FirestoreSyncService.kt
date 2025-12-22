@@ -1,6 +1,5 @@
 package com.flash.recipeVault.firebase
 
-import android.content.Context
 import com.flash.recipeVault.data.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,7 +14,6 @@ import kotlinx.coroutines.tasks.await
  * Conflict handling: last-write-wins using updatedAt.
  */
 class FirestoreSyncService(
-    private val context: Context,
     private val repo: RecipeRepository,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
