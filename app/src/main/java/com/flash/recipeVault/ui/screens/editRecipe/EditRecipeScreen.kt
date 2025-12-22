@@ -130,7 +130,7 @@ fun EditRecipeScreen(
                         title = title,
                         description = desc,
                         imageUri = pickedImageUri,
-                        imageUrl = null,
+                        imageUrl = alreadyAvailableImageUrl,
                         ingredients = ingredients.toList(),
                         steps = steps.toList(),
                         onDone = onBack,
