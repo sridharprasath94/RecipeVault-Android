@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,7 +22,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
@@ -53,7 +53,6 @@ import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
 import com.flash.recipeVault.ui.components.StepItemRow
-import com.flash.recipeVault.ui.screens.auth.AuthState
 import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,7 +101,7 @@ fun CreateRecipeScreen(
                     keyboardController?.hide()
 
                     vm.save(
-                        title = title.trim(),
+                        title = title,
                         description = desc,
                         imageUri = imageUri,
                         imageUrl = null,
@@ -114,33 +113,45 @@ fun CreateRecipeScreen(
             )
         }
     ) { padding ->
-        if (ui.isSaving) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+        Box(modifier = Modifier.fillMaxSize()) {
+            CreateRecipeForm(
+                padding = padding,
+                title = title,
+                onTitleChange = { title = it },
+                desc = desc,
+                onDescChange = { desc = it },
+                imageUri = imageUri,
+                onPickImage = {
+                    pickImageLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onRemoveImage = { imageUri = null },
+                ingredients = ingredients,
+                onIngredientChange = { idx, row -> ingredients[idx] = row },
+                onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
+                onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
+                steps = steps,
+                onStepChange = { idx, value -> steps[idx] = value },
+                onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
+                onAddStep = { steps.add("") }
+            )
+
+            if (ui.isSaving) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f))
+                        // Consume all pointer input so nothing beneath is clickable
+                        .pointerInput(Unit) { /* just block */ }
+                )
+
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
-        CreateRecipeForm(
-            padding = padding,
-            title = title,
-            onTitleChange = { title = it },
-            desc = desc,
-            onDescChange = { desc = it },
-            imageUri = imageUri,
-            onPickImage = {
-                pickImageLauncher.launch(
-                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                )
-            },
-            onRemoveImage = { imageUri = null },
-            ingredients = ingredients,
-            onIngredientChange = { idx, row -> ingredients[idx] = row },
-            onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
-            onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
-            steps = steps,
-            onStepChange = { idx, value -> steps[idx] = value },
-            onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
-            onAddStep = { steps.add("") }
-        )
+
     }
 }
 
