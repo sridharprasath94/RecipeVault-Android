@@ -95,8 +95,8 @@ private fun CreateRecipeFormPreview_Empty() {
             onAddIngredient = {},
             steps = remember { mutableStateListOf("") },
             onStepChange = { _, _ -> },
+            onStepsRemove = { _ -> },
             onAddStep = {},
-            error = null,
         )
     }
 }
@@ -122,9 +122,9 @@ private fun CreateRecipeFormPreview_Filled() {
             onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
             onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
             steps = steps,
+            onStepsRemove = { _ -> },
             onStepChange = { idx, v -> steps[idx] = v },
             onAddStep = { steps.add("") },
-            error = null,
         )
     }
 }
@@ -186,9 +186,9 @@ private fun CreateRecipeFormPreview_Error() {
             onIngredientRemove = { _ -> },
             onAddIngredient = {},
             steps = remember { mutableStateListOf("") },
+            onStepsRemove = { _ -> },
             onStepChange = { _, _ -> },
             onAddStep = {},
-            error = "Title is required",
         )
     }
 }

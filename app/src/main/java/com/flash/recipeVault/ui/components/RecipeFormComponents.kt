@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.input.KeyboardType
 
 data class IngredientFormRow(
@@ -53,41 +56,44 @@ fun IngredientRow(
     onChange: (IngredientFormRow) -> Unit,
     onRemove: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = row.name,
-                onValueChange = { onChange(row.copy(name = it)) },
-                label = { Text("Name") },
-                modifier = Modifier.weight(1f)
-            )
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        OutlinedTextField(
+            value = row.name,
+            onValueChange = { onChange(row.copy(name = it)) },
+            label = { Text("Name") },
+            modifier = Modifier.weight(1f)
+        )
 
-            // Qty: numbers only
-            OutlinedTextField(
-                value = row.qty,
-                onValueChange = { new ->
-                    // allow only digits (0-9)
-                    if (new.all { it.isDigit() }) {
-                        onChange(row.copy(qty = new))
-                    }
-                },
-                label = { Text("Qty") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.width(90.dp)
-            )
+        OutlinedTextField(
+            value = row.qty,
+            onValueChange = { new ->
+                // allow only digits (0-9)
+                if (new.all { it.isDigit() }) {
+                    onChange(row.copy(qty = new))
+                }
+            },
+            label = { Text("Qty") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.width(90.dp)
+        )
 
-            // Unit: dropdown
-            UnitDropdown(
-                value = row.unit,
-                onSelected = { onChange(row.copy(unit = it)) },
-                modifier = Modifier.width(130.dp)
-            )
-        }
+        // Unit: dropdown
+        UnitDropdown(
+            value = row.unit,
+            onSelected = { onChange(row.copy(unit = it)) },
+            modifier = Modifier.width(130.dp)
+        )
 
-        TextButton(onClick = onRemove) { Text("Remove") }
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Remove ingredient",
+            modifier = Modifier
+                .clickable { onRemove() }
+        )
     }
 }
 
@@ -135,5 +141,29 @@ private fun UnitDropdown(
                 )
             }
         }
+    }
+}
+
+@Composable
+fun StepItemRow(
+    s: String,
+    idx: Int,
+    onStepChange: (String) -> Unit,
+    onStepsRemove: () -> Unit
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        OutlinedTextField(
+            value = s,
+            onValueChange = { onStepChange(it) },
+            label = { Text("Step ${idx + 1}") },
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Remove ingredient",
+            modifier = Modifier
+                .clickable { onStepsRemove() }
+        )
     }
 }

@@ -1,8 +1,11 @@
 package com.flash.recipeVault.ui.screens.createRecipe
 
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -19,6 +22,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -31,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -41,11 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.StepItemRow
+import com.flash.recipeVault.ui.screens.auth.AuthState
 import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +72,6 @@ fun CreateRecipeScreen(
     val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
     val steps = remember { mutableStateListOf("") }
 
-    var error by remember { mutableStateOf<String?>(null) }
     var imageUri by rememberSaveable { mutableStateOf<String?>(null) }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
@@ -72,7 +79,17 @@ fun CreateRecipeScreen(
         onResult = { uri -> imageUri = uri?.toString() }
     )
     val ui by vm.ui.collectAsState()
+    val errorMessage = (ui.error)
+    val context = LocalContext.current
 
+
+    LaunchedEffect(errorMessage) {
+        if (!errorMessage.isNullOrBlank()) {
+            Log.d("AuthScreen", "Authentication error: $errorMessage")
+            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
+            vm.clearError()
+        }
+    }
     val keyboardController = LocalSoftwareKeyboardController.current
 
     Scaffold(
@@ -83,7 +100,6 @@ fun CreateRecipeScreen(
                 isSaving = ui.isSaving,
                 onSave = {
                     keyboardController?.hide()
-                    error = null
 
                     vm.save(
                         title = title.trim(),
@@ -93,7 +109,6 @@ fun CreateRecipeScreen(
                         ingredients = ingredients.toList(),
                         steps = steps.toList(),
                         onDone = onCreated,
-                        onError = { error = it }
                     )
                 }
             )
@@ -123,8 +138,8 @@ fun CreateRecipeScreen(
             onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
             steps = steps,
             onStepChange = { idx, value -> steps[idx] = value },
-            onAddStep = { steps.add("") },
-            error = error,
+            onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
+            onAddStep = { steps.add("") }
         )
     }
 }
@@ -168,9 +183,10 @@ fun CreateRecipeForm(
     onAddIngredient: () -> Unit,
     steps: SnapshotStateList<String>,
     onStepChange: (Int, String) -> Unit,
+    onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
-    error: String?,
 ) {
+
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -216,12 +232,11 @@ fun CreateRecipeForm(
         item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
 
         itemsIndexed(steps) { idx, s ->
-            OutlinedTextField(
-                value = s,
-                onValueChange = { onStepChange(idx, it) },
-                label = { Text("Step ${idx + 1}") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            StepItemRow(
+                s,
+                idx,
+                onStepChange = { onStepChange(idx, it) },
+                onStepsRemove = { onStepsRemove(idx) })
         }
 
         item {
@@ -229,12 +244,6 @@ fun CreateRecipeForm(
                 Icon(Icons.Default.Add, contentDescription = "Add")
                 Spacer(Modifier.width(8.dp))
                 Text("Add step")
-            }
-        }
-
-        item {
-            if (error != null) {
-                Text(error, color = MaterialTheme.colorScheme.error)
             }
         }
     }

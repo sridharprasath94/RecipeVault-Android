@@ -12,6 +12,7 @@ data class CreateRecipeUiState(
     val isSaving: Boolean = false,
     val error: String? = null,
 )
+
 class CreateRecipeViewModel(
     private val repo: RecipeRepository
 ) : ViewModel() {
@@ -36,15 +37,20 @@ class CreateRecipeViewModel(
         return null
     }
 
+    fun clearError() {
+        if (_ui.value.error != null) {
+            _ui.value = _ui.value.copy(error = null)
+        }
+    }
+
     fun save(
         title: String,
         description: String?,
         imageUri: String?,
-        imageUrl : String?,
+        imageUrl: String?,
         ingredients: List<IngredientFormRow>,
         steps: List<String>,
         onDone: (Long) -> Unit,
-        onError: (String) -> Unit
     ) {
         val cleanTitle = title.trim()
         val cleanDesc = description?.trim()?.ifEmpty { null }
@@ -64,7 +70,7 @@ class CreateRecipeViewModel(
 
         val error = validate(cleanTitle, cleanIngredients, cleanSteps)
         if (error != null) {
-            onError(error)
+            _ui.value = _ui.value.copy(error = error)
             return
         }
 
@@ -81,9 +87,8 @@ class CreateRecipeViewModel(
                 )
                 onDone(id)
             } catch (e: Exception) {
-                onError(e.message ?: "Failed to save recipe")
                 _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")
-            }finally {
+            } finally {
                 _ui.value = _ui.value.copy(isSaving = false)
             }
         }

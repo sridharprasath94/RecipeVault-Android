@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.StepItemRow
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.flash.recipeVault.util.RecipeImage
 
@@ -171,6 +172,7 @@ fun EditRecipeScreen(
             onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
             steps = steps,
             onStepChange = { idx, value -> steps[idx] = value },
+            onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
             error = error,
         )
@@ -219,6 +221,7 @@ fun EditRecipeForm(
     onAddIngredient: () -> Unit,
     steps: SnapshotStateList<String>,
     onStepChange: (Int, String) -> Unit,
+    onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
     error: String?,
 ) {
@@ -270,12 +273,11 @@ fun EditRecipeForm(
         item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
 
         itemsIndexed(steps) { idx, s ->
-            OutlinedTextField(
-                value = s,
-                onValueChange = { onStepChange(idx, it) },
-                label = { Text("Step ${idx + 1}") },
-                modifier = Modifier.fillMaxWidth()
-            )
+            StepItemRow(
+                s,
+                idx,
+                onStepChange = { onStepChange(idx, it) },
+                onStepsRemove = { onStepsRemove(idx) })
         }
 
         item { OutlinedButton(onClick = onAddStep) { Text("Add step") } }
