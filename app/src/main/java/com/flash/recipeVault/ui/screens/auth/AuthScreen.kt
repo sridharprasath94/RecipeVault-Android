@@ -3,7 +3,6 @@
 package com.flash.recipeVault.ui.screens.auth
 
 import android.content.Context
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -25,14 +23,11 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,6 +42,7 @@ import com.flash.recipeVault.ui.components.StandardTextField
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,13 +53,11 @@ fun AuthScreen(
     val state by authVm.state.collectAsState()
     val form by authVm.form.collectAsState()
     val context = LocalContext.current
-    val uid = (state as? AuthState.LoggedIn)?.uid
 
     // Requires a real google-services.json to generate R.string.default_web_client_id
     val webClientId = stringResource(R.string.default_web_client_id)
     val googleClient = remember(context, webClientId) { googleSignInClient(webClientId, context) }
 
-    var googleConfigDialog by remember { mutableStateOf(false) }
 
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -71,28 +65,19 @@ fun AuthScreen(
         authVm.onGoogleResult(result.resultCode, result.data)
     }
 
-    val errorMessage = (state as? AuthState.Error)?.message
 
-    LaunchedEffect(errorMessage) {
-        if (!errorMessage.isNullOrBlank()) {
-            Log.d("AuthScreen", "Authentication error: $errorMessage")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            authVm.clearError()
+    LaunchedEffect(Unit) {
+        authVm.events.collectLatest { event ->
+            when (event) {
+                is AuthEvent.Toast -> Toast.makeText(context, event.message, Toast.LENGTH_LONG)
+                    .show()
+
+                AuthEvent.NavigateLoggedIn -> onLoggedIn()
+                AuthEvent.LaunchGoogleSignIn -> googleLauncher.launch(googleClient.signInIntent)
+            }
         }
     }
 
-    LaunchedEffect(uid) {
-        if (uid != null) onLoggedIn()
-    }
-
-    if (googleConfigDialog) {
-        AlertDialog(
-            onDismissRequest = { googleConfigDialog = false },
-            title = { Text("Google Sign-In setup required") },
-            text = { Text("Replace app/google-services.json with your real Firebase config (and ensure default_web_client_id is generated).") },
-            confirmButton = { TextButton(onClick = { googleConfigDialog = false }) { Text("OK") } }
-        )
-    }
 
     Scaffold { padding ->
         AuthFormContent(
@@ -104,10 +89,7 @@ fun AuthScreen(
             state = state,
             onSignIn = authVm::submitSignIn,
             onSignUp = authVm::submitSignUp,
-            onGoogleSignIn = {
-                if (webClientId.isBlank()) googleConfigDialog = true
-                else googleLauncher.launch(googleClient.signInIntent)
-            }
+            onGoogleSignIn = { authVm.onGoogleSignInClicked(webClientId) }
         )
     }
 }
