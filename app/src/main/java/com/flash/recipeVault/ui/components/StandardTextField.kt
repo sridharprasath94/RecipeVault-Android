@@ -7,6 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 @Composable
 fun StandardTextField(
@@ -27,4 +29,29 @@ fun StandardTextField(
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         visualTransformation = visualTransformation,
     )
+}
+
+@Preview(name = "Standard TextField Preview", showBackground = true, widthDp = 360)
+@Composable
+private fun StandardTextFieldPreview() {
+    RecipeVaultTheme {
+        StandardTextField(
+            value = "Sample Text",
+            onValueChange = {},
+            label = "Sample Label"
+        )
+    }
+}
+
+@Preview(name = "Standard TextField Number Preview", showBackground = true, widthDp = 360)
+@Composable
+private fun StandardTextFieldNumberPreview() {
+    RecipeVaultTheme {
+        StandardTextField(
+            value = "123",
+            onValueChange = {},
+            label = "Quantity",
+            keyboardType = KeyboardType.Number
+        )
+    }
 }

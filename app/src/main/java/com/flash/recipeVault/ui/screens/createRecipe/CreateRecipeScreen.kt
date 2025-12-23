@@ -9,11 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -28,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -52,8 +48,9 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.RecipeEditFields
+import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
-import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +203,7 @@ fun CreateRecipeForm(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
-            RecipeBasicFields(
+            RecipeEditFields(
                 title = title,
                 onTitleChange = onTitleChange,
                 desc = desc,
@@ -215,10 +212,11 @@ fun CreateRecipeForm(
         }
 
         item {
-            RecipeImagePickerSection(
-                imageUri = imageUri,
-                onPickImage = onPickImage,
-                onRemoveImage = onRemoveImage,
+            RecipeImagePicker(
+                pickedImageUri = imageUri,
+                existingImageUrl = null,
+                onPickClick = onPickImage,
+                onRemoveClick = onRemoveImage
             )
         }
 
@@ -257,53 +255,6 @@ fun CreateRecipeForm(
                 Text("Add step")
             }
         }
-    }
-}
-
-@Composable
-fun RecipeBasicFields(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    desc: String,
-    onDescChange: (String) -> Unit,
-) {
-    Spacer(Modifier.height(0.dp))
-    OutlinedTextField(
-        value = title,
-        onValueChange = onTitleChange,
-        label = { Text("Title") },
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = desc,
-        onValueChange = onDescChange,
-        label = { Text("Description (optional)") },
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-fun RecipeImagePickerSection(
-    imageUri: String?,
-    onPickImage: () -> Unit,
-    onRemoveImage: () -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onPickImage) {
-            Text(if (imageUri == null) "Pick image (optional)" else "Change image")
-        }
-
-        if (imageUri != null) {
-            OutlinedButton(onClick = onRemoveImage) { Text("Remove") }
-        }
-    }
-
-    if (imageUri != null) {
-        Spacer(Modifier.height(8.dp))
-        RecipeImage(imageUri)
     }
 }
 

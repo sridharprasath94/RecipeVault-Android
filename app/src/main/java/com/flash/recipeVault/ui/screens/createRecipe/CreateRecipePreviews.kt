@@ -129,45 +129,6 @@ private fun CreateRecipeFormPreview_Filled() {
     }
 }
 
-@Preview(name = "Basic Fields", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeBasicFieldsPreview() {
-    RecipeVaultTheme {
-        RecipeBasicFields(
-            title = "Masala Omelette",
-            onTitleChange = {},
-            desc = "Eggs with onion, chili, coriander.",
-            onDescChange = {},
-        )
-    }
-}
-
-@Preview(name = "Image Picker - No Image", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeImagePickerSectionPreview_NoImage() {
-    RecipeVaultTheme {
-        RecipeImagePickerSection(
-            imageUri = null,
-            onPickImage = {},
-            onRemoveImage = {},
-        )
-    }
-}
-
-@Preview(name = "Image Picker - With Image", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeImagePickerSectionPreview_WithImage() {
-    // Note: Android Studio Preview cannot access real device URIs.
-    // This is just to preview the layout; the image may not render.
-    RecipeVaultTheme {
-        RecipeImagePickerSection(
-            imageUri = "content://com.example.fake/image/1",
-            onPickImage = {},
-            onRemoveImage = {},
-        )
-    }
-}
-
 @Preview(name = "Error Text", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun CreateRecipeFormPreview_Error() {

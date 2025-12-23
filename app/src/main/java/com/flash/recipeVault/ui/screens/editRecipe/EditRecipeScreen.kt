@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.RecipeEditFields
+import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.flash.recipeVault.util.RecipeImage
@@ -258,11 +260,11 @@ fun EditRecipeForm(
         }
 
         item {
-            RecipeImageSection(
+            RecipeImagePicker(
                 pickedImageUri = pickedImageUri,
-                imageUrl = alreadyAvailableImageUrl,
+                existingImageUrl = alreadyAvailableImageUrl,
                 onPickClick = onPickImage,
-                onRemoveClick = onRemoveImage,
+                onRemoveClick = onRemoveImage
             )
         }
 
@@ -296,67 +298,6 @@ fun EditRecipeForm(
             if (error != null) {
                 Text(error, color = MaterialTheme.colorScheme.error)
             }
-        }
-    }
-}
-
-@Composable
-fun RecipeEditFields(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    desc: String,
-    onDescChange: (String) -> Unit,
-) {
-    OutlinedTextField(
-        value = title,
-        onValueChange = onTitleChange,
-        label = { Text("Title") },
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = desc,
-        onValueChange = onDescChange,
-        label = { Text("Description (optional)") },
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-fun RecipeImageSection(
-    pickedImageUri: String?,
-    imageUrl: String?,
-    onPickClick: () -> Unit,
-    onRemoveClick: () -> Unit
-) {
-    val hasAnyImage by remember(pickedImageUri, imageUrl) {
-        derivedStateOf { !pickedImageUri.isNullOrBlank() || !imageUrl.isNullOrBlank() }
-    }
-
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onPickClick) {
-            Text(
-                if (!hasAnyImage) "Pick image (optional)"
-                else "Change image"
-            )
-        }
-
-        if (hasAnyImage) {
-            OutlinedButton(onClick = onRemoveClick) { Text("Remove") }
-        }
-    }
-
-    when {
-        !pickedImageUri.isNullOrBlank() -> {
-            Spacer(Modifier.height(8.dp))
-            RecipeImage(pickedImageUri)
-        }
-
-        !imageUrl.isNullOrBlank() -> {
-            Spacer(Modifier.height(8.dp))
-            RecipeAsyncImage(imageUrl)
         }
     }
 }
