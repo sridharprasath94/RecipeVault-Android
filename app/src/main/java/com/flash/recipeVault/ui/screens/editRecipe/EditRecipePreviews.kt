@@ -98,7 +98,6 @@ private fun EditRecipeFormPreview_Loading() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = null,
         )
     }
 }
@@ -130,7 +129,6 @@ private fun EditRecipeFormPreview_Loaded() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = null,
         )
     }
 }
@@ -161,7 +159,6 @@ private fun EditRecipeFormPreview_Error() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = "Title is required",
         )
     }
 }

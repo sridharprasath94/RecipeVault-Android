@@ -9,22 +9,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -46,6 +42,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
+import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
 import com.flash.recipeVault.ui.components.RecipeEditFields
@@ -194,7 +191,6 @@ fun CreateRecipeForm(
     onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
 ) {
-
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -231,29 +227,27 @@ fun CreateRecipeForm(
         }
 
         item {
-            OutlinedButton(onClick = onAddIngredient) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-                Spacer(Modifier.width(8.dp))
-                Text("Add ingredient")
-            }
+            AddItemButton(
+                text = "Add ingredient",
+                onClick = onAddIngredient
+            )
         }
 
         item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
 
-        itemsIndexed(steps) { idx, s ->
+        itemsIndexed(steps) { idx, step ->
             StepItemRow(
-                s,
+                step,
                 idx,
                 onStepChange = { onStepChange(idx, it) },
                 onStepsRemove = { onStepsRemove(idx) })
         }
 
         item {
-            OutlinedButton(onClick = onAddStep) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
-                Spacer(Modifier.width(8.dp))
-                Text("Add step")
-            }
+            AddItemButton(
+                text = "Add step",
+                onClick = onAddStep
+            )
         }
     }
 }
