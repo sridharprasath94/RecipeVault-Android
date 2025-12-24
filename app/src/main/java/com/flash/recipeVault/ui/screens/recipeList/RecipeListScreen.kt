@@ -3,6 +3,7 @@
 package com.flash.recipeVault.ui.screens.recipeList
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -34,13 +35,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -48,13 +47,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.flash.recipeVault.R
+import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
-import com.flash.recipeVault.data.RecipeEntity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -69,6 +69,7 @@ fun RecipeListScreen(
     val repo = remember { container.recipeRepositoryForCurrentUser() }
     val vm = remember { RecipeListViewModel(repo) }
     val recipes by vm.recipes.collectAsState()
+    val ui by vm.ui.collectAsState()
 
 
     val context = LocalContext.current
@@ -86,11 +87,6 @@ fun RecipeListScreen(
         )
     }
 
-    var deleteConfirmationDialog by rememberSaveable { mutableStateOf(false) }
-    var deleteRecipeId by rememberSaveable { mutableStateOf<Long?>(null) }
-
-    var showLogoutDialog by rememberSaveable { mutableStateOf(false) }
-    var showMenu by rememberSaveable { mutableStateOf(false) }
 
     // Save JSON to any document provider. If Google Drive is installed, choose Drive here.
     val backupLauncher = rememberLauncherForActivityResult(
@@ -107,44 +103,22 @@ fun RecipeListScreen(
         }
     )
 
-    RecipeListDialogs(
-        showLogoutDialog = showLogoutDialog,
-        onDismissLogout = { showLogoutDialog = false },
-        onConfirmLogout = {
-            showLogoutDialog = false
-            vm.signOut()
-            container.signOut()
-            googleClient.signOut()
-            onLogout()
-        },
-        showDeleteDialog = deleteConfirmationDialog,
-        onDismissDelete = {
-            deleteRecipeId = null
-            deleteConfirmationDialog = false
-        },
-        onConfirmDelete = {
-            deleteRecipeId?.let { vm.delete(it) }
-            deleteRecipeId = null
-            deleteConfirmationDialog = false
-        }
-    )
+    LaunchedEffect(Unit) {
+        vm.events.collectLatest { event ->
+            when (event) {
+                RecipeListEvent.SyncNow -> {
+                    runCatching {
+                        container.firestoreSyncServiceForCurrentUser().syncNow()
+                    }.onFailure {
+                        vm.onSyncFailed(it.message ?: "Sync failed")
+                    }
+                }
 
-    Scaffold(
-        topBar = {
-            RecipeListTopBar(
-                showMenu = showMenu,
-                onOpenMenu = { showMenu = true },
-                onDismissMenu = { showMenu = false },
-                onSyncWithCloud = {
-                    showMenu = false
-                    scope.launch { container.firestoreSyncServiceForCurrentUser().syncNow() }
-                },
-                onBackup = {
-                    showMenu = false
+                RecipeListEvent.BackupToDocument -> {
                     backupLauncher.launch("recipes_backup_${System.currentTimeMillis()}.json")
-                },
-                onShare = {
-                    showMenu = false
+                }
+
+                RecipeListEvent.ShareBackup -> {
                     scope.launch {
                         val json = repo.exportAllAsJson()
                         val file = File(
@@ -164,11 +138,45 @@ fun RecipeListScreen(
                         }
                         context.startActivity(Intent.createChooser(intent, "Share backup"))
                     }
-                },
-                onLogoutClick = {
-                    showMenu = false
-                    showLogoutDialog = true
                 }
+
+                RecipeListEvent.LoggedOut -> {
+                    container.signOut()
+                    googleClient.signOut()
+                    onLogout()
+                }
+
+                is RecipeListEvent.Toast -> Toast.makeText(
+                    context,
+                    event.message,
+                    Toast.LENGTH_LONG
+                )
+                    .show()
+            }
+        }
+    }
+
+    RecipeListDialogs(
+        showLogoutDialog = ui.showLogoutDialog,
+        onDismissLogout = vm::dismissLogout,
+        onConfirmLogout = {
+            vm.confirmLogout()
+        },
+        showDeleteDialog = ui.showDeleteDialog,
+        onDismissDelete = vm::dismissDelete,
+        onConfirmDelete = vm::confirmDelete,
+    )
+
+    Scaffold(
+        topBar = {
+            RecipeListTopBar(
+                showMenu = ui.showMenu,
+                onOpenMenu = vm::openMenu,
+                onDismissMenu = vm::dismissMenu,
+                onSyncWithCloud = vm::syncNowClicked,
+                onBackup = vm::backupClicked,
+                onShare = vm::shareClicked,
+                onLogoutClick = vm::requestLogout,
             )
         },
         floatingActionButton = {
@@ -181,10 +189,7 @@ fun RecipeListScreen(
             padding = padding,
             recipes = recipes,
             onOpen = onOpen,
-            onDeleteClick = { id ->
-                deleteRecipeId = id
-                deleteConfirmationDialog = true
-            }
+            onDeleteClick = { id -> vm.requestDelete(id) }
         )
     }
 }
@@ -295,14 +300,14 @@ fun RecipeListItem(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(12.dp)
+                .clickable(onClick = onOpen),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 Modifier
                     .weight(1f)
-                    .clickable(onClick = onOpen)
             ) {
                 Text(recipe.title, style = MaterialTheme.typography.titleMedium)
                 if (!recipe.description.isNullOrBlank()) {

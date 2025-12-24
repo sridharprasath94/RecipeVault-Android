@@ -9,11 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,8 +21,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -34,7 +28,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -48,11 +41,12 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
+import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.RecipeEditFields
+import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
-import com.flash.recipeVault.util.RecipeAsyncImage
-import com.flash.recipeVault.util.RecipeImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -69,7 +63,6 @@ fun EditRecipeScreen(
     var desc by rememberSaveable { mutableStateOf("") }
     val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
     val steps = remember { mutableStateListOf("") }
-    var error by remember { mutableStateOf<String?>(null) }
     var pickedImageUri by rememberSaveable { mutableStateOf<String?>(null) }
     var alreadyAvailableImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -168,7 +161,6 @@ fun EditRecipeScreen(
                 onStepChange = { idx, value -> steps[idx] = value },
                 onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
                 onAddStep = { steps.add("") },
-                error = error,
             )
 
             // ✅ Overlay that blocks touches + dims UI
@@ -233,7 +225,6 @@ fun EditRecipeForm(
     onStepChange: (Int, String) -> Unit,
     onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
-    error: String?,
 ) {
     LazyColumn(
         modifier = Modifier
@@ -258,11 +249,11 @@ fun EditRecipeForm(
         }
 
         item {
-            RecipeImageSection(
+            RecipeImagePicker(
                 pickedImageUri = pickedImageUri,
-                imageUrl = alreadyAvailableImageUrl,
+                existingImageUrl = alreadyAvailableImageUrl,
                 onPickClick = onPickImage,
-                onRemoveClick = onRemoveImage,
+                onRemoveClick = onRemoveImage
             )
         }
 
@@ -277,86 +268,26 @@ fun EditRecipeForm(
         }
 
         item {
-            OutlinedButton(onClick = onAddIngredient) { Text("Add ingredient") }
+            AddItemButton(
+                text = "Add ingredient",
+                onClick = onAddIngredient
+            )
         }
 
         item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
 
-        itemsIndexed(steps) { idx, s ->
+        itemsIndexed(steps) { idx, step ->
             StepItemRow(
-                s,
+                step,
                 idx,
                 onStepChange = { onStepChange(idx, it) },
                 onStepsRemove = { onStepsRemove(idx) })
         }
-
-        item { OutlinedButton(onClick = onAddStep) { Text("Add step") } }
-
         item {
-            if (error != null) {
-                Text(error, color = MaterialTheme.colorScheme.error)
-            }
-        }
-    }
-}
-
-@Composable
-fun RecipeEditFields(
-    title: String,
-    onTitleChange: (String) -> Unit,
-    desc: String,
-    onDescChange: (String) -> Unit,
-) {
-    OutlinedTextField(
-        value = title,
-        onValueChange = onTitleChange,
-        label = { Text("Title") },
-        modifier = Modifier.fillMaxWidth()
-    )
-
-    Spacer(Modifier.height(12.dp))
-
-    OutlinedTextField(
-        value = desc,
-        onValueChange = onDescChange,
-        label = { Text("Description (optional)") },
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Composable
-fun RecipeImageSection(
-    pickedImageUri: String?,
-    imageUrl: String?,
-    onPickClick: () -> Unit,
-    onRemoveClick: () -> Unit
-) {
-    val hasAnyImage by remember(pickedImageUri, imageUrl) {
-        derivedStateOf { !pickedImageUri.isNullOrBlank() || !imageUrl.isNullOrBlank() }
-    }
-
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        OutlinedButton(onClick = onPickClick) {
-            Text(
-                if (!hasAnyImage) "Pick image (optional)"
-                else "Change image"
+            AddItemButton(
+                text = "Add Step",
+                onClick = onAddStep
             )
-        }
-
-        if (hasAnyImage) {
-            OutlinedButton(onClick = onRemoveClick) { Text("Remove") }
-        }
-    }
-
-    when {
-        !pickedImageUri.isNullOrBlank() -> {
-            Spacer(Modifier.height(8.dp))
-            RecipeImage(pickedImageUri)
-        }
-
-        !imageUrl.isNullOrBlank() -> {
-            Spacer(Modifier.height(8.dp))
-            RecipeAsyncImage(imageUrl)
         }
     }
 }

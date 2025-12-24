@@ -11,31 +11,6 @@ import com.flash.recipeVault.ui.components.StandardTextField
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 
-
-@Preview(name = "Email Field", showBackground = true)
-@Composable
-fun StandardTextFieldEmailPreview() {
-    StandardTextField(
-        value = "user@example.com",
-        onValueChange = {},
-        label = "Email",
-        keyboardType = KeyboardType.Email,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
-@Preview(name = "Password Field", showBackground = true)
-@Composable
-fun StandardTextFieldPasswordPreview() {
-    StandardTextField(
-        value = "password",
-        onValueChange = {},
-        label = "Password",
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
-    )
-}
-
 @Preview(name = "Auth Form - Logged Out", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 fun AuthFormContentPreviewLoggedOut() {
@@ -76,23 +51,26 @@ fun AuthFormContentPreviewLoading() {
     }
 }
 
-@Preview(name = "Auth Form - Error", showBackground = true, widthDp = 360, heightDp = 720)
+@Preview(name = "Email Field", showBackground = true)
 @Composable
-fun AuthFormContentPreviewError() {
-    RecipeVaultTheme {
-        Scaffold { padding ->
-            AuthFormContent(
-                padding = padding,
-                email = "user@example.com",
-                onEmailChange = {},
-                password = "password",
-                onPasswordChange = {},
-                state = AuthState.Error("Invalid credentials"),
-                onSignIn = {},
-                onSignUp = {},
-                onGoogleSignIn = {},
-            )
-        }
-    }
+fun StandardTextFieldEmailPreview() {
+    StandardTextField(
+        value = "user@example.com",
+        onValueChange = {},
+        label = "Email",
+        keyboardType = KeyboardType.Email,
+        modifier = Modifier.fillMaxWidth()
+    )
 }
 
+@Preview(name = "Password Field", showBackground = true)
+@Composable
+fun StandardTextFieldPasswordPreview() {
+    StandardTextField(
+        value = "password",
+        onValueChange = {},
+        label = "Password",
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = Modifier.fillMaxWidth()
+    )
+}

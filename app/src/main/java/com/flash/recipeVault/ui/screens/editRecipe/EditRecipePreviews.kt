@@ -98,7 +98,6 @@ private fun EditRecipeFormPreview_Loading() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = null,
         )
     }
 }
@@ -130,7 +129,6 @@ private fun EditRecipeFormPreview_Loaded() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = null,
         )
     }
 }
@@ -161,46 +159,6 @@ private fun EditRecipeFormPreview_Error() {
             onStepChange = { idx, v -> steps[idx] = v },
             onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
             onAddStep = { steps.add("") },
-            error = "Title is required",
-        )
-    }
-}
-
-@Preview(name = "Image Section - No Image", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeImageSectionPreview_None() {
-    RecipeVaultTheme {
-        RecipeImageSection(
-            pickedImageUri = null,
-            imageUrl = null,
-            onPickClick = {},
-            onRemoveClick = {},
-        )
-    }
-}
-
-@Preview(name = "Image Section - Picked Uri", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeImageSectionPreview_PickedUri() {
-    RecipeVaultTheme {
-        RecipeImageSection(
-            pickedImageUri = "content://com.example.fake/image/1",
-            imageUrl = null,
-            onPickClick = {},
-            onRemoveClick = {},
-        )
-    }
-}
-
-@Preview(name = "Image Section - Existing Url", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeImageSectionPreview_ExistingUrl() {
-    RecipeVaultTheme {
-        RecipeImageSection(
-            pickedImageUri = null,
-            imageUrl = "https://example.com/sample.jpg",
-            onPickClick = {},
-            onRemoveClick = {},
         )
     }
 }
