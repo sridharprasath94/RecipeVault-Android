@@ -300,14 +300,14 @@ fun RecipeListItem(
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(12.dp)
+                .clickable(onClick = onOpen),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 Modifier
                     .weight(1f)
-                    .clickable(onClick = onOpen)
             ) {
                 Text(recipe.title, style = MaterialTheme.typography.titleMedium)
                 if (!recipe.description.isNullOrBlank()) {
