@@ -193,12 +193,12 @@ fun RecipeDetailBody(
 }
 
 @Composable
-private fun SectionCard(
+fun SectionCard(
     title: String,
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium)

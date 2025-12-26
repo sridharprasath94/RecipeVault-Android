@@ -9,15 +9,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateList
@@ -43,10 +47,12 @@ import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
-import com.flash.recipeVault.ui.components.IngredientRow
+import com.flash.recipeVault.ui.components.IngredientItem
 import com.flash.recipeVault.ui.components.RecipeEditFields
 import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
+import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,6 +79,8 @@ fun EditRecipeScreen(
             alreadyAvailableImageUrl = null
         }
     )
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     val ui by vm.ui.collectAsState()
     val errorMessage = (ui.error)
@@ -156,11 +164,17 @@ fun EditRecipeScreen(
                 ingredients = ingredients,
                 onIngredientChange = { idx, row -> ingredients[idx] = row },
                 onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
-                onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
+                onAddIngredient = {
+                    ingredients.add(IngredientFormRow())
+                    scope.launch { listState.animateScrollToItem(ingredients.lastIndex) }
+                },
                 steps = steps,
                 onStepChange = { idx, value -> steps[idx] = value },
                 onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
-                onAddStep = { steps.add("") },
+                onAddStep = {
+                    steps.add("")
+                    scope.launch { listState.animateScrollToItem(steps.lastIndex) }
+                },
             )
 
             // ✅ Overlay that blocks touches + dims UI
@@ -257,15 +271,26 @@ fun EditRecipeForm(
             )
         }
 
-        item { Text("Ingredients", style = MaterialTheme.typography.titleMedium) }
-
-        itemsIndexed(ingredients) { idx, row ->
-            IngredientRow(
-                row = row,
-                onChange = { onIngredientChange(idx, it) },
-                onRemove = { onIngredientRemove(idx) },
-            )
+        item {
+            SectionCard(title = "Ingredients") {
+                if (ingredients.isEmpty()) {
+                    Text("No ingredients added.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    ingredients.forEachIndexed { idx, row ->
+                        IngredientItem(
+                            index = idx + 1,
+                            row = row,
+                            onChange = { onIngredientChange(idx, it) },
+                            onRemove = { onIngredientRemove(idx) },
+                        )
+                        if (idx != ingredients.lastIndex) {
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                        }
+                    }
+                }
+            }
         }
+
 
         item {
             AddItemButton(
@@ -274,15 +299,25 @@ fun EditRecipeForm(
             )
         }
 
-        item { Text("Steps", style = MaterialTheme.typography.titleMedium) }
-
-        itemsIndexed(steps) { idx, step ->
-            StepItemRow(
-                step,
-                idx,
-                onStepChange = { onStepChange(idx, it) },
-                onStepsRemove = { onStepsRemove(idx) })
+        item {
+            SectionCard(title = "Steps") {
+                if (steps.isEmpty()) {
+                    Text("No steps added.", style = MaterialTheme.typography.bodyMedium)
+                } else {
+                    steps.forEachIndexed { idx, step ->
+                        StepItemRow(
+                            s = step,
+                            idx = idx,
+                            onChange = { onStepChange(idx, it) },
+                            onRemove = { onStepsRemove(idx) })
+                        if (idx != steps.lastIndex) {
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                }
+            }
         }
+
         item {
             AddItemButton(
                 text = "Add Step",
