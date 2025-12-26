@@ -17,6 +17,8 @@ data class RecipeListUiState(
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val deleteRecipeId: Long? = null,
+    val isSyncing: Boolean = false,
+    val isCloudSynced: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
 }
@@ -61,12 +63,14 @@ class RecipeListViewModel(
 
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
-        _ui.update { it.copy(deleteRecipeId = null) }
+        _ui.update { it.copy(deleteRecipeId = null, isCloudSynced = false) }
         viewModelScope.launch { repo.deleteRecipe(id) }
     }
 
     fun syncNowClicked() {
-        dismissMenu(); _events.tryEmit(RecipeListEvent.SyncNow)
+        dismissMenu()
+        _ui.update { it.copy(isSyncing = true) }
+        _events.tryEmit(RecipeListEvent.SyncNow)
     }
 
     fun backupClicked() {
@@ -77,7 +81,17 @@ class RecipeListViewModel(
         dismissMenu(); _events.tryEmit(RecipeListEvent.ShareBackup)
     }
 
+    fun onSyncSucceeded() {
+        _ui.update { it.copy(isSyncing = false, isCloudSynced = true) }
+    }
+
     fun onSyncFailed(message: String) {
+        _ui.update { it.copy(isSyncing = false, isCloudSynced = false) }
         _events.tryEmit(RecipeListEvent.Toast(message))
+    }
+
+    /** Restore persisted cloud-sync status (e.g., after app restart). */
+    fun restoreCloudSynced(isSynced: Boolean) {
+        _ui.update { it.copy(isCloudSynced = isSynced, isSyncing = false) }
     }
 }
