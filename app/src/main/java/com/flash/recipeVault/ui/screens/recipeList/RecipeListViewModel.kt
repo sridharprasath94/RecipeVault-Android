@@ -32,6 +32,11 @@ sealed interface RecipeListEvent {
     data class Toast(val message: String) : RecipeListEvent
 }
 
+data class LastSyncedRead(
+    val lastSyncedAt: Long,
+    val shouldRemoveBadValue: Boolean
+)
+
 class RecipeListViewModel(
     private val repo: RecipeRepository,
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
@@ -83,7 +88,10 @@ class RecipeListViewModel(
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
         _ui.update { it.copy(deleteRecipeId = null) }
-        viewModelScope.launch { repo.deleteRecipe(id) }
+        viewModelScope.launch {
+            repo.deleteRecipe(id)
+            _events.tryEmit(RecipeListEvent.SyncNow)
+        }
     }
 
     fun syncNowClicked() {
@@ -117,5 +125,18 @@ class RecipeListViewModel(
         _lastSyncedAt.value = lastSyncedAt
         _ui.update { it.copy(isSyncing = false) }
         recomputeCloudSynced()
+    }
+
+
+    fun parseLastSyncedAt(any: Any?): LastSyncedRead {
+        val value = when (any) {
+            is Long -> any
+            is Int -> any.toLong()
+            is String -> any.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+
+        val shouldRemove = any != null && any !is Long && any !is Int && any !is String
+        return LastSyncedRead(lastSyncedAt = value, shouldRemoveBadValue = shouldRemove)
     }
 }

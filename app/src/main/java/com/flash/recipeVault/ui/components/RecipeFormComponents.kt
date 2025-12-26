@@ -162,7 +162,7 @@ fun StepItemRow(
             modifier = Modifier.weight(2f),
             value = s,
             onValueChange = { onChange(it) },
-            label = { Text("Step ${idx + 1}") },
+            label = { Text("Step $idx") },
         )
 
         if (onRemove != null) {

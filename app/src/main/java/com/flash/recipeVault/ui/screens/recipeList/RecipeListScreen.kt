@@ -78,12 +78,8 @@ fun RecipeListScreen(
     val vm = remember { RecipeListViewModel(repo) }
     val recipes by vm.recipes.collectAsState()
     val ui by vm.ui.collectAsState()
-
-
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
-    // Persist *timestamp* of last successful cloud sync (per user)
     val uid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous" }
     val syncPrefs = remember(uid) {
         context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
@@ -91,23 +87,15 @@ fun RecipeListScreen(
     val prefsKey = remember { "last_synced_at" }
 
     LaunchedEffect(uid) {
-        // Defensive read: older builds might have stored a Boolean under some key; avoid crashes.
-        val any = syncPrefs.all[prefsKey]
-        val lastSyncedAt = when (any) {
-            is Long -> any
-            is Int -> any.toLong()
-            is String -> any.toLongOrNull() ?: 0L
-            else -> 0L
-        }
-        if (any != null && any !is Long && any !is Int && any !is String) {
+        val parsed = vm.parseLastSyncedAt(syncPrefs.all[prefsKey])
+        if (parsed.shouldRemoveBadValue) {
             syncPrefs.edit { remove(prefsKey) }
         }
-        vm.restoreLastSyncedAt(lastSyncedAt)
+        vm.restoreLastSyncedAt(parsed.lastSyncedAt)
     }
 
     // Requires a real google-services.json to generate R.string.default_web_client_id
     val webClientId = stringResource(R.string.default_web_client_id)
-
     val googleClient = remember(webClientId) {
         GoogleSignIn.getClient(
             context,
@@ -117,7 +105,6 @@ fun RecipeListScreen(
                 .build()
         )
     }
-
 
     // Save JSON to any document provider. If Google Drive is installed, choose Drive here.
     val backupLauncher = rememberLauncherForActivityResult(
