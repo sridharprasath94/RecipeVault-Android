@@ -228,8 +228,7 @@ fun IngredientNameAutoComplete(
             },
             label = {
                 Text(
-                    "Ingredient",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    "Ingredient"
                 )
             },
             singleLine = true,
