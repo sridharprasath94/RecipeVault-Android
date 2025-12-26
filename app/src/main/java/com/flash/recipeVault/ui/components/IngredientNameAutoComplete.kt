@@ -2,6 +2,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -214,6 +215,7 @@ fun IngredientNameAutoComplete(
             .filter { it.contains(value.text, ignoreCase = true) }
             .take(8)
     }
+    val showMenu = expanded && filtered.isNotEmpty()
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -234,14 +236,14 @@ fun IngredientNameAutoComplete(
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor(),
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, !expanded),
             trailingIcon = {
                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
             }
         )
 
         DropdownMenu(
-            expanded = expanded,
+            expanded = showMenu,
             onDismissRequest = { expanded = false },
             properties = PopupProperties(focusable = false), // ✅ fixes “double backspace”
             modifier = Modifier.exposedDropdownSize(matchAnchorWidth = true)
