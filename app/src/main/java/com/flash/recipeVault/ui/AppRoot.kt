@@ -1,26 +1,25 @@
 package com.flash.recipeVault.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.remember
-import com.google.firebase.firestore.ListenerRegistration
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.screens.auth.AuthScreen
-import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeScreen
-import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 import com.flash.recipeVault.ui.screens.auth.AuthState
 import com.flash.recipeVault.ui.screens.auth.AuthViewModel
+import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeScreen
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
+import com.google.firebase.firestore.ListenerRegistration
 
 @Composable
 fun AppRoot(container: AppContainer) {
@@ -61,7 +60,7 @@ fun AppRoot(container: AppContainer) {
             }
 
             composable("list") {
-                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
+//                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
                 RecipeListScreen(
                     container = container,
                     onAdd = { nav.navigate("create") },

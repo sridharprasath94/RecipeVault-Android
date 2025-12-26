@@ -46,6 +46,8 @@ private fun RecipeListTopBarPreview_Closed() {
         topBar = {
             RecipeListTopBar(
                 showMenu = false,
+                isCloudSynced =  false,
+                isSyncing = false,
                 onOpenMenu = {},
                 onDismissMenu = {},
                 onSyncWithCloud = {},
@@ -70,6 +72,8 @@ private fun RecipeListTopBarPreview_Open() {
         topBar = {
             RecipeListTopBar(
                 showMenu = true,
+                isCloudSynced =  false,
+                isSyncing = true,
                 onOpenMenu = {},
                 onDismissMenu = {},
                 onSyncWithCloud = {},

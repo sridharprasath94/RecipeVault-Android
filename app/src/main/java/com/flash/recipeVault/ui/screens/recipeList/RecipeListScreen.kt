@@ -2,6 +2,7 @@
 
 package com.flash.recipeVault.ui.screens.recipeList
 
+import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,13 +18,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +37,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -54,9 +60,11 @@ import com.flash.recipeVault.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
+import androidx.core.content.edit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,13 +78,24 @@ fun RecipeListScreen(
     val vm = remember { RecipeListViewModel(repo) }
     val recipes by vm.recipes.collectAsState()
     val ui by vm.ui.collectAsState()
-
-
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val uid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous" }
+    val syncPrefs = remember(uid) {
+        context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
+    }
+    val prefsKey = remember { "last_synced_at" }
+
+    LaunchedEffect(uid) {
+        val parsed = vm.parseLastSyncedAt(syncPrefs.all[prefsKey])
+        if (parsed.shouldRemoveBadValue) {
+            syncPrefs.edit { remove(prefsKey) }
+        }
+        vm.restoreLastSyncedAt(parsed.lastSyncedAt)
+    }
+
     // Requires a real google-services.json to generate R.string.default_web_client_id
     val webClientId = stringResource(R.string.default_web_client_id)
-
     val googleClient = remember(webClientId) {
         GoogleSignIn.getClient(
             context,
@@ -86,7 +105,6 @@ fun RecipeListScreen(
                 .build()
         )
     }
-
 
     // Save JSON to any document provider. If Google Drive is installed, choose Drive here.
     val backupLauncher = rememberLauncherForActivityResult(
@@ -109,6 +127,10 @@ fun RecipeListScreen(
                 RecipeListEvent.SyncNow -> {
                     runCatching {
                         container.firestoreSyncServiceForCurrentUser().syncNow()
+                    }.onSuccess {
+                        val now = System.currentTimeMillis()
+                        syncPrefs.edit { putLong(prefsKey, now) }
+                        vm.onSyncSucceeded(now)
                     }.onFailure {
                         vm.onSyncFailed(it.message ?: "Sync failed")
                     }
@@ -171,6 +193,8 @@ fun RecipeListScreen(
         topBar = {
             RecipeListTopBar(
                 showMenu = ui.showMenu,
+                isCloudSynced = ui.isCloudSynced,
+                isSyncing = ui.isSyncing,
                 onOpenMenu = vm::openMenu,
                 onDismissMenu = vm::dismissMenu,
                 onSyncWithCloud = vm::syncNowClicked,
@@ -198,6 +222,8 @@ fun RecipeListScreen(
 @Composable
 fun RecipeListTopBar(
     showMenu: Boolean,
+    isCloudSynced: Boolean,
+    isSyncing: Boolean,
     onOpenMenu: () -> Unit,
     onDismissMenu: () -> Unit,
     onSyncWithCloud: () -> Unit,
@@ -217,8 +243,46 @@ fun RecipeListTopBar(
                 onDismissRequest = onDismissMenu
             ) {
                 DropdownMenuItem(
-                    text = { Text("Sync with Cloud") },
-                    onClick = onSyncWithCloud
+                    text = {
+                        val label = when {
+                            isSyncing -> "Syncing with Cloud…"
+                            isCloudSynced -> "Cloud Synced"
+                            else -> "Sync with Cloud"
+                        }
+                        Text(label)
+                    },
+                    onClick = onSyncWithCloud,
+                    trailingIcon = {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            tonalElevation = 1.dp
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(horizontal = 6.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                when {
+                                    isSyncing -> {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    }
+
+                                    isCloudSynced -> {
+                                        Icon(
+                                            Icons.Default.Check,
+                                            contentDescription = "Synced",
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 )
 
                 DropdownMenuItem(
