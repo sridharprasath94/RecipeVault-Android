@@ -1,6 +1,7 @@
 package com.flash.recipeVault.di
 
 import android.content.Context
+import com.flash.recipeVault.data.IngredientSuggestionsRepository
 import com.flash.recipeVault.data.RecipeDatabase
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.firebase.FirebaseBackupService
@@ -35,7 +36,8 @@ class AppContainer(
     // Cache per-user instances to avoid recreating them on every call.
     private var cachedUid: String? = null
     private var cachedDb: RecipeDatabase? = null
-    private var cachedRepo: RecipeRepository? = null
+    private var cachedRecipeRepo: RecipeRepository? = null
+    private var cachedIngredientSuggestionsRepo: IngredientSuggestionsRepository? = null
     private var cachedSync: FirestoreSyncService? = null
     private var cachedBackup: FirebaseBackupService? = null
 
@@ -54,7 +56,8 @@ class AppContainer(
     private fun clearUserScopedCaches() {
         cachedUid = null
         cachedDb = null
-        cachedRepo = null
+        cachedRecipeRepo = null
+        cachedIngredientSuggestionsRepo = null
         cachedSync = null
         cachedBackup = null
     }
@@ -83,8 +86,20 @@ class AppContainer(
             cachedDb = it
         }
 
-        return cachedRepo ?: RecipeRepository(db.recipeDao(), imageStorage).also {
-            cachedRepo = it
+        return cachedRecipeRepo ?: RecipeRepository(db.recipeDao(), imageStorage).also {
+            cachedRecipeRepo = it
+        }
+    }
+
+    fun ingredientSuggestionsRepositoryForCurrentUser(): com.flash.recipeVault.data.IngredientSuggestionsRepository {
+        val uid = ensureUserCache()
+
+        val db = cachedDb ?: RecipeDatabase.get(appContext, "recipe_db_$uid").also {
+            cachedDb = it
+        }
+
+        return IngredientSuggestionsRepository(db.ingredientSuggestionDao()).also {
+            cachedIngredientSuggestionsRepo = it
         }
     }
 

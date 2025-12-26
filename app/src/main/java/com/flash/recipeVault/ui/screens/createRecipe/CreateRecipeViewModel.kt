@@ -1,7 +1,9 @@
 package com.flash.recipeVault.ui.screens.createRecipe
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flash.recipeVault.data.IngredientSuggestionsRepository
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +16,8 @@ data class CreateRecipeUiState(
 )
 
 class CreateRecipeViewModel(
-    private val repo: RecipeRepository
+    private val repo: RecipeRepository,
+    private val ingredientSuggestionsRepo: IngredientSuggestionsRepository,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(CreateRecipeUiState())
     val ui: StateFlow<CreateRecipeUiState> = _ui
@@ -85,6 +88,10 @@ class CreateRecipeViewModel(
                     ingredients = cleanIngredients,
                     steps = cleanSteps
                 )
+                ingredients
+                    .map { it.name.trim() }
+                    .filter { it.isNotBlank() }
+                    .forEach { ingredientSuggestionsRepo.addUserIngredient(it) }
                 onDone(id)
             } catch (e: Exception) {
                 _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")

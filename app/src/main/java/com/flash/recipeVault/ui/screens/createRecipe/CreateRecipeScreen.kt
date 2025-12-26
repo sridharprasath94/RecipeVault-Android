@@ -62,10 +62,18 @@ fun CreateRecipeScreen(
     onBack: () -> Unit,
     onCreated: (Long) -> Unit
 ) {
-    val vm = remember { CreateRecipeViewModel(container.recipeRepositoryForCurrentUser()) }
+    val ingredientsSuggestionRepo = container.ingredientSuggestionsRepositoryForCurrentUser()
+    val vm = remember {
+        CreateRecipeViewModel(
+            container.recipeRepositoryForCurrentUser(),
+            ingredientsSuggestionRepo
+        )
+    }
 
     var title by rememberSaveable { mutableStateOf("") }
     var desc by rememberSaveable { mutableStateOf("") }
+    val suggestions by ingredientsSuggestionRepo.observeAllMerged()
+        .collectAsState(initial = emptyList())
 
     val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
     val steps = remember { mutableStateListOf("") }
@@ -118,6 +126,7 @@ fun CreateRecipeScreen(
             CreateRecipeForm(
                 padding = padding,
                 title = title,
+                suggestions = suggestions,
                 onTitleChange = { title = it },
                 desc = desc,
                 onDescChange = { desc = it },
@@ -189,6 +198,7 @@ fun CreateRecipeTopBar(
 fun CreateRecipeForm(
     padding: PaddingValues,
     title: String,
+    suggestions: List<String>,
     onTitleChange: (String) -> Unit,
     desc: String,
     onDescChange: (String) -> Unit,
@@ -239,6 +249,7 @@ fun CreateRecipeForm(
                     ingredients.forEachIndexed { idx, row ->
                         IngredientItem(
                             index = idx + 1,
+                            suggestions = suggestions,
                             row = row,
                             onChange = { onIngredientChange(idx, it) },
                             onRemove = { onIngredientRemove(idx) },

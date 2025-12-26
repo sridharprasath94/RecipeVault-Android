@@ -59,6 +59,7 @@ private val FoodUnits = listOf(
 @Composable
 fun IngredientItem(
     index: Int,
+    suggestions: List<String>,
     row: IngredientFormRow,
     onChange: (IngredientFormRow) -> Unit,
     onRemove: (() -> Unit)? = null,
@@ -90,8 +91,11 @@ fun IngredientItem(
         ) {
             IngredientNameAutoComplete(
                 value = ingredientName,
-                onValueChange = { ingredientName = it },
-                suggestions = IngredientSuggestions.items
+                onValueChange = {
+                    onChange(row.copy(name = it.text))
+                    ingredientName = it
+                },
+                suggestions = suggestions
             )
 
             Row(
@@ -233,6 +237,7 @@ private fun IngredientItemPreview() {
     RecipeVaultTheme {
         IngredientItem(
             index = 1,
+            suggestions = listOf("Onion", "Garlic", "Tomato"),
             row = IngredientFormRow(
                 name = "Onion",
                 qty = "2",

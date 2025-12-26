@@ -2,6 +2,7 @@ package com.flash.recipeVault.ui.screens.editRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.flash.recipeVault.data.IngredientSuggestionsRepository
 import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +19,8 @@ data class EditRecipeUiState(
 
 class EditRecipeViewModel(
     private val recipeId: Long,
-    private val repo: RecipeRepository
+    private val repo: RecipeRepository,
+    private val ingredientSuggestionsRepo: IngredientSuggestionsRepository,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(EditRecipeUiState())
     val ui: StateFlow<EditRecipeUiState> = _ui
@@ -91,6 +93,10 @@ class EditRecipeViewModel(
                     ingredients = cleanIngredients,
                     steps = cleanSteps
                 )
+                ingredients
+                    .map { it.name.trim() }
+                    .filter { it.isNotBlank() }
+                    .forEach { ingredientSuggestionsRepo.addUserIngredient(it) }
                 onDone()
             } catch (e: Exception) {
                 _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")
