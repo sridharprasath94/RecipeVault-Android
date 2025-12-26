@@ -1,5 +1,6 @@
 package com.flash.recipeVault.ui.components
 
+import IngredientNameAutoComplete
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +29,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
@@ -61,6 +63,10 @@ fun IngredientItem(
     onChange: (IngredientFormRow) -> Unit,
     onRemove: (() -> Unit)? = null,
 ) {
+    var ingredientName by remember {
+        mutableStateOf(TextFieldValue(""))
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -82,16 +88,10 @@ fun IngredientItem(
             modifier = Modifier.weight(2f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            OutlinedTextField(
-                value = row.name,
-                onValueChange = { onChange(row.copy(name = it)) },
-                label = {
-                    Text(
-                        "Ingredient"
-                    )
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+            IngredientNameAutoComplete(
+                value = ingredientName,
+                onValueChange = { ingredientName = it },
+                suggestions = IngredientSuggestions.items
             )
 
             Row(
