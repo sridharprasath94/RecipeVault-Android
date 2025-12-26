@@ -6,12 +6,13 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [RecipeEntity::class, IngredientEntity::class, StepEntity::class],
-    version = 5,
+    entities = [RecipeEntity::class, IngredientEntity::class, StepEntity::class, IngredientSuggestionEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class RecipeDatabase : RoomDatabase() {
     abstract fun recipeDao(): RecipeDao
+    abstract fun ingredientSuggestionDao(): IngredientSuggestionDao
 
     companion object {
         @Volatile

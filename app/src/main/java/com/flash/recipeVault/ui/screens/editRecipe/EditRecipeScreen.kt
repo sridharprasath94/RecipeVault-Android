@@ -61,9 +61,12 @@ fun EditRecipeScreen(
     recipeId: Long,
     onBack: () -> Unit
 ) {
+    val ingredientsSuggestionRepo = container.ingredientSuggestionsRepositoryForCurrentUser()
     val repo = remember { container.recipeRepositoryForCurrentUser() }
-    val vm = remember { EditRecipeViewModel(recipeId, repo) }
+    val vm = remember { EditRecipeViewModel(recipeId, repo, ingredientsSuggestionRepo) }
     val data by vm.recipe.collectAsState()
+    val suggestions by container.ingredientSuggestionsRepositoryForCurrentUser().observeAllMerged()
+        .collectAsState(initial = emptyList())
 
     var title by rememberSaveable { mutableStateOf("") }
     var desc by rememberSaveable { mutableStateOf("") }
@@ -145,6 +148,7 @@ fun EditRecipeScreen(
                 padding = padding,
                 isLoading = data == null,
                 title = title,
+                suggestions = suggestions,
                 onTitleChange = { title = it },
                 desc = desc,
                 onDescChange = { desc = it },
@@ -224,6 +228,7 @@ fun EditRecipeForm(
     padding: PaddingValues,
     isLoading: Boolean,
     title: String,
+    suggestions: List<String>,
     onTitleChange: (String) -> Unit,
     desc: String,
     onDescChange: (String) -> Unit,
@@ -279,6 +284,7 @@ fun EditRecipeForm(
                     ingredients.forEachIndexed { idx, row ->
                         IngredientItem(
                             index = idx + 1,
+                            suggestions = suggestions,
                             row = row,
                             onChange = { onIngredientChange(idx, it) },
                             onRemove = { onIngredientRemove(idx) },
