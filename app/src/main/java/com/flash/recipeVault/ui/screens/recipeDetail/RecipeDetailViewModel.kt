@@ -13,7 +13,7 @@ class RecipeDetailViewModel(
 ) : ViewModel() {
 
     val recipe = repo.observeRecipe(recipeId)
-        .stateIn(viewModelScope, SharingStarted.Companion.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun delete() = viewModelScope.launch { repo.deleteRecipe(recipeId) }
 }
