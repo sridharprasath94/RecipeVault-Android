@@ -46,6 +46,25 @@ class RecipeListViewModel(
     private val _events = MutableSharedFlow<RecipeListEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
+    private val _lastSyncedAt = MutableStateFlow(0L)
+
+    init {
+        // Whenever local data changes, recompute whether we are still in-sync with the last successful cloud sync.
+        viewModelScope.launch {
+            recipes.collect {
+                recomputeCloudSynced()
+            }
+        }
+    }
+
+    private fun recomputeCloudSynced() {
+        val last = _lastSyncedAt.value
+        val list = recipes.value
+        // “Synced” means: nothing visible changed after the last successful sync.
+        val synced = list.all { it.updatedAt <= last }
+        _ui.update { it.copy(isCloudSynced = synced) }
+    }
+
     fun openMenu() = _ui.update { it.copy(showMenu = true) }
     fun dismissMenu() = _ui.update { it.copy(showMenu = false) }
 
@@ -63,7 +82,7 @@ class RecipeListViewModel(
 
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
-        _ui.update { it.copy(deleteRecipeId = null, isCloudSynced = false) }
+        _ui.update { it.copy(deleteRecipeId = null) }
         viewModelScope.launch { repo.deleteRecipe(id) }
     }
 
@@ -81,17 +100,22 @@ class RecipeListViewModel(
         dismissMenu(); _events.tryEmit(RecipeListEvent.ShareBackup)
     }
 
-    fun onSyncSucceeded() {
-        _ui.update { it.copy(isSyncing = false, isCloudSynced = true) }
+    fun onSyncSucceeded(lastSyncedAt: Long) {
+        _lastSyncedAt.value = lastSyncedAt
+        _ui.update { it.copy(isSyncing = false) }
+        recomputeCloudSynced()
     }
 
     fun onSyncFailed(message: String) {
-        _ui.update { it.copy(isSyncing = false, isCloudSynced = false) }
+        _ui.update { it.copy(isSyncing = false) }
         _events.tryEmit(RecipeListEvent.Toast(message))
+        // keep previous isCloudSynced; it reflects last successful sync vs local changes
     }
 
-    /** Restore persisted cloud-sync status (e.g., after app restart). */
-    fun restoreCloudSynced(isSynced: Boolean) {
-        _ui.update { it.copy(isCloudSynced = isSynced, isSyncing = false) }
+    /** Restore persisted last successful sync timestamp (e.g., after app restart). */
+    fun restoreLastSyncedAt(lastSyncedAt: Long) {
+        _lastSyncedAt.value = lastSyncedAt
+        _ui.update { it.copy(isSyncing = false) }
+        recomputeCloudSynced()
     }
 }

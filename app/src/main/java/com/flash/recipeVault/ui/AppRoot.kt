@@ -61,7 +61,7 @@ fun AppRoot(container: AppContainer) {
             }
 
             composable("list") {
-                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
+//                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
                 RecipeListScreen(
                     container = container,
                     onAdd = { nav.navigate("create") },

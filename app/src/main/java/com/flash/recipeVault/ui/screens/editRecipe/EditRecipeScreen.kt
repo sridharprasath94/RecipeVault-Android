@@ -307,7 +307,7 @@ fun EditRecipeForm(
                     steps.forEachIndexed { idx, step ->
                         StepItemRow(
                             s = step,
-                            idx = idx,
+                            idx = idx + 1,
                             onChange = { onStepChange(idx, it) },
                             onRemove = { onStepsRemove(idx) })
                         if (idx != steps.lastIndex) {

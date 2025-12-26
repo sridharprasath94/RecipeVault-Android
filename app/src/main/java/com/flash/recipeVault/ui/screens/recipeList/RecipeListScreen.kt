@@ -83,20 +83,26 @@ fun RecipeListScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Persist the cloud-sync checkmark across app restarts (per user)
+    // Persist *timestamp* of last successful cloud sync (per user)
     val uid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous" }
     val syncPrefs = remember(uid) {
         context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
     }
+    val prefsKey = remember { "last_synced_at" }
 
     LaunchedEffect(uid) {
-        val persisted = syncPrefs.getBoolean("cloud_synced", false)
-        vm.restoreCloudSynced(persisted)
-    }
-
-    // Whenever VM changes the cloud-synced flag (e.g., after delete), persist it.
-    LaunchedEffect(ui.isCloudSynced) {
-        syncPrefs.edit { putBoolean("cloud_synced", ui.isCloudSynced) }
+        // Defensive read: older builds might have stored a Boolean under some key; avoid crashes.
+        val any = syncPrefs.all[prefsKey]
+        val lastSyncedAt = when (any) {
+            is Long -> any
+            is Int -> any.toLong()
+            is String -> any.toLongOrNull() ?: 0L
+            else -> 0L
+        }
+        if (any != null && any !is Long && any !is Int && any !is String) {
+            syncPrefs.edit { remove(prefsKey) }
+        }
+        vm.restoreLastSyncedAt(lastSyncedAt)
     }
 
     // Requires a real google-services.json to generate R.string.default_web_client_id
@@ -135,10 +141,10 @@ fun RecipeListScreen(
                     runCatching {
                         container.firestoreSyncServiceForCurrentUser().syncNow()
                     }.onSuccess {
-                        syncPrefs.edit { putBoolean("cloud_synced", true) }
-                        vm.onSyncSucceeded()
+                        val now = System.currentTimeMillis()
+                        syncPrefs.edit { putLong(prefsKey, now) }
+                        vm.onSyncSucceeded(now)
                     }.onFailure {
-                        syncPrefs.edit { putBoolean("cloud_synced", false) }
                         vm.onSyncFailed(it.message ?: "Sync failed")
                     }
                 }
