@@ -1,9 +1,11 @@
 package com.flash.recipeVault.di
 
 import android.content.Context
-import com.flash.recipeVault.data.IngredientSuggestionsRepository
+import com.flash.recipeVault.data.SuggestionsRepository
 import com.flash.recipeVault.data.RecipeDatabase
 import com.flash.recipeVault.data.RecipeRepository
+import com.flash.recipeVault.data.SuggestionType
+import com.flash.recipeVault.data.defaults.DefaultSuggestionsProvider
 import com.flash.recipeVault.firebase.FirebaseBackupService
 import com.flash.recipeVault.firebase.FirebaseImageStorage
 import com.flash.recipeVault.firebase.FirestoreSyncService
@@ -37,7 +39,7 @@ class AppContainer(
     private var cachedUid: String? = null
     private var cachedDb: RecipeDatabase? = null
     private var cachedRecipeRepo: RecipeRepository? = null
-    private var cachedIngredientSuggestionsRepo: IngredientSuggestionsRepository? = null
+    private var cachedSuggestionsRepo: SuggestionsRepository? = null
     private var cachedSync: FirestoreSyncService? = null
     private var cachedBackup: FirebaseBackupService? = null
 
@@ -57,7 +59,7 @@ class AppContainer(
         cachedUid = null
         cachedDb = null
         cachedRecipeRepo = null
-        cachedIngredientSuggestionsRepo = null
+        cachedSuggestionsRepo = null
         cachedSync = null
         cachedBackup = null
     }
@@ -91,15 +93,15 @@ class AppContainer(
         }
     }
 
-    fun ingredientSuggestionsRepositoryForCurrentUser(): com.flash.recipeVault.data.IngredientSuggestionsRepository {
+    fun suggestionsRepositoryForCurrentUser(): SuggestionsRepository {
         val uid = ensureUserCache()
 
         val db = cachedDb ?: RecipeDatabase.get(appContext, "recipe_db_$uid").also {
             cachedDb = it
         }
 
-        return IngredientSuggestionsRepository(db.ingredientSuggestionDao()).also {
-            cachedIngredientSuggestionsRepo = it
+        return cachedSuggestionsRepo ?: SuggestionsRepository(db.suggestionDao()).also {
+            cachedSuggestionsRepo = it
         }
     }
 
@@ -131,5 +133,28 @@ class AppContainer(
         ).also {
             cachedBackup = it
         }
+    }
+
+    /**
+     * One-time seeding of default suggestions from res/raw text files.
+     * Safe to call on every app start; it will no-op if data already exists.
+     *
+     * Call this from Application.onCreate (inside a Dispatchers.IO coroutine).
+     */
+    suspend fun seedDefaultSuggestionsIfEmpty() {
+        val repo = suggestionsRepositoryForCurrentUser()
+
+        repo.seedDefaultsIfEmpty(
+            type = SuggestionType.INGREDIENT,
+            defaults = DefaultSuggestionsProvider.ingredients(appContext)
+        )
+        repo.seedDefaultsIfEmpty(
+            type = SuggestionType.UNIT,
+            defaults = DefaultSuggestionsProvider.units(appContext)
+        )
+        repo.seedDefaultsIfEmpty(
+            type = SuggestionType.STEP,
+            defaults = DefaultSuggestionsProvider.steps(appContext)
+        )
     }
 }

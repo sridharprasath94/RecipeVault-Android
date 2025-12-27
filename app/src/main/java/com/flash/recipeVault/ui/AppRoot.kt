@@ -46,6 +46,7 @@ fun AppRoot(container: AppContainer) {
         LaunchedEffect(state) {
             if (state is AuthState.LoggedIn) {
                 container.firestoreSyncServiceForCurrentUser().syncNow()
+                container.seedDefaultSuggestionsIfEmpty()
             }
         }
 

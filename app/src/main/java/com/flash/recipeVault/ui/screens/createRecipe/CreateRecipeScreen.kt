@@ -45,6 +45,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
+import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
@@ -52,6 +53,7 @@ import com.flash.recipeVault.ui.components.IngredientItem
 import com.flash.recipeVault.ui.components.RecipeEditFields
 import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
+import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
 import kotlinx.coroutines.launch
 
@@ -62,7 +64,7 @@ fun CreateRecipeScreen(
     onBack: () -> Unit,
     onCreated: (Long) -> Unit
 ) {
-    val ingredientsSuggestionRepo = container.ingredientSuggestionsRepositoryForCurrentUser()
+    val ingredientsSuggestionRepo = container.suggestionsRepositoryForCurrentUser()
     val vm = remember {
         CreateRecipeViewModel(
             container.recipeRepositoryForCurrentUser(),
@@ -72,8 +74,7 @@ fun CreateRecipeScreen(
 
     var title by rememberSaveable { mutableStateOf("") }
     var desc by rememberSaveable { mutableStateOf("") }
-    val suggestions by ingredientsSuggestionRepo.observeAllMerged()
-        .collectAsState(initial = emptyList())
+    val suggestions by vm.suggestions.collectAsState()
 
     val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
     val steps = remember { mutableStateListOf("") }
@@ -198,7 +199,7 @@ fun CreateRecipeTopBar(
 fun CreateRecipeForm(
     padding: PaddingValues,
     title: String,
-    suggestions: List<String>,
+    suggestions: SuggestionsUi,
     onTitleChange: (String) -> Unit,
     desc: String,
     onDescChange: (String) -> Unit,
@@ -275,6 +276,7 @@ fun CreateRecipeForm(
                     steps.forEachIndexed { idx, step ->
                         StepItemRow(
                             s = step,
+                            suggestions = suggestions,
                             idx = idx + 1,
                             onChange = { onStepChange(idx, it) },
                             onRemove = { onStepsRemove(idx) })
