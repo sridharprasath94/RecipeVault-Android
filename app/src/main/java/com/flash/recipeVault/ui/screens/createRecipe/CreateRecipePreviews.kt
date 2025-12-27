@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.ui.components.IngredientFormRow
+import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 private fun previewIngredients(): SnapshotStateList<IngredientFormRow> =
@@ -83,7 +84,7 @@ private fun CreateRecipeFormPreview_Empty() {
         CreateRecipeForm(
             padding = PaddingValues(0.dp),
             title = "",
-            suggestions =  listOf("Onion", "Garlic", "Tomato", "Salt", "Pepper"),
+            suggestions = SuggestionsUi(),
             onTitleChange = {},
             desc = "",
             onDescChange = {},
@@ -112,7 +113,7 @@ private fun CreateRecipeFormPreview_Filled() {
         CreateRecipeForm(
             padding = PaddingValues(0.dp),
             title = "Pasta Arrabbiata",
-            suggestions =  listOf("Onion", "Garlic", "Tomato", "Salt", "Pepper"),
+            suggestions = SuggestionsUi(),
             onTitleChange = {},
             desc = "Spicy tomato pasta with garlic and chili flakes.",
             onDescChange = {},
@@ -138,7 +139,7 @@ private fun CreateRecipeFormPreview_Error() {
         CreateRecipeForm(
             padding = PaddingValues(0.dp),
             title = "",
-            suggestions =  listOf("Onion", "Garlic", "Tomato", "Salt", "Pepper"),
+            suggestions = SuggestionsUi(),
             onTitleChange = {},
             desc = "",
             onDescChange = {},

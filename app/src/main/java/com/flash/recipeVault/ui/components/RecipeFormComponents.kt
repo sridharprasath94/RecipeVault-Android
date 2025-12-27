@@ -1,6 +1,7 @@
 package com.flash.recipeVault.ui.components
 
-import IngredientNameAutoComplete
+import MatchMode
+import SuggestionAutoCompleteField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -22,16 +18,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 data class IngredientFormRow(
@@ -40,33 +32,14 @@ data class IngredientFormRow(
     val unit: String = ""
 )
 
-private val FoodUnits = listOf(
-    "g",
-    "kg",
-    "ml",
-    "l",
-    "teaspoon",
-    "tablespoon",
-    "cup",
-    "small",
-    "medium",
-    "large",
-    "piece",
-    "slice",
-    "pinch"
-)
-
 @Composable
 fun IngredientItem(
     index: Int,
-    suggestions: List<String>,
+    suggestions: SuggestionsUi,
     row: IngredientFormRow,
     onChange: (IngredientFormRow) -> Unit,
     onRemove: (() -> Unit)? = null,
 ) {
-    var ingredientName by remember {
-        mutableStateOf(TextFieldValue(""))
-    }
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -89,13 +62,15 @@ fun IngredientItem(
             modifier = Modifier.weight(2f),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IngredientNameAutoComplete(
-                value = ingredientName,
+            SuggestionAutoCompleteField(
+                value = row.name,
                 onValueChange = {
-                    onChange(row.copy(name = it.text))
-                    ingredientName = it
+                    onChange(row.copy(name = it))
                 },
-                suggestions = suggestions
+                suggestions = suggestions.ingredients,
+                label = "Ingredient",
+                showDropdownIcon = true,
+                matchMode = MatchMode.Contains
             )
 
             Row(
@@ -118,10 +93,15 @@ fun IngredientItem(
                     ),
                     modifier = Modifier.weight(0.4f)
                 )
-                UnitDropdown(
+
+                SuggestionAutoCompleteField(
+                    modifier = Modifier.weight(0.6f),
                     value = row.unit,
-                    onSelected = { onChange(row.copy(unit = it)) },
-                    modifier = Modifier.weight(0.6f)
+                    onValueChange = { onChange(row.copy(unit = it)) },
+                    suggestions = suggestions.units,
+                    label = "Unit",
+                    showDropdownIcon = true,
+                    matchMode = MatchMode.Contains
                 )
             }
         }
@@ -142,6 +122,7 @@ fun IngredientItem(
 @Composable
 fun StepItemRow(
     s: String,
+    suggestions: SuggestionsUi,
     idx: Int,
     onChange: (String) -> Unit,
     onRemove: (() -> Unit)? = null
@@ -162,11 +143,17 @@ fun StepItemRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        OutlinedTextField(
+
+        SuggestionAutoCompleteField(
             modifier = Modifier.weight(2f),
             value = s,
-            onValueChange = { onChange(it) },
-            label = { Text("Step $idx") },
+            onValueChange = {
+                onChange(it)
+            },
+            suggestions = suggestions.steps,
+            label = "Step $idx",
+            showDropdownIcon = false,
+            matchMode = MatchMode.Contains
         )
 
         if (onRemove != null) {
@@ -183,61 +170,13 @@ fun StepItemRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun UnitDropdown(
-    value: String,
-    onSelected: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = {},
-            readOnly = true,
-            singleLine = true,
-            label = {
-                Text(
-                    "Unit",
-                )
-            },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, !expanded)
-                .fillMaxWidth()
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            FoodUnits.forEach { unit ->
-                DropdownMenuItem(
-                    text = { Text(unit) },
-                    onClick = {
-                        expanded = false
-                        onSelected(unit)
-                    }
-                )
-            }
-        }
-    }
-}
-
-
 @Preview(name = "Ingredient Item Preview", showBackground = true, widthDp = 360)
 @Composable
 private fun IngredientItemPreview() {
     RecipeVaultTheme {
         IngredientItem(
             index = 1,
-            suggestions = listOf("Onion", "Garlic", "Tomato"),
+            suggestions = SuggestionsUi(),
             row = IngredientFormRow(
                 name = "Onion",
                 qty = "2",
@@ -255,22 +194,13 @@ private fun StepItemRowPreview() {
     RecipeVaultTheme {
         StepItemRow(
             s = "Chop the onions finely.",
-            idx = 0,
+            suggestions = SuggestionsUi(),
+            idx = 1,
             onChange = {},
             onRemove = {}
         )
     }
 }
 
-@Preview(name = "Unit Dropdown Preview", showBackground = true, widthDp = 360)
-@Composable
-private fun UnitDropdownPreview() {
-    RecipeVaultTheme {
-        UnitDropdown(
-            value = "cup",
-            onSelected = {}
-        )
-    }
-}
 
 

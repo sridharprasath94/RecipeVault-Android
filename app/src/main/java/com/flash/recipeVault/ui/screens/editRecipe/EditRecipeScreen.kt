@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -51,6 +52,7 @@ import com.flash.recipeVault.ui.components.IngredientItem
 import com.flash.recipeVault.ui.components.RecipeEditFields
 import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
+import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
 import kotlinx.coroutines.launch
 
@@ -61,12 +63,11 @@ fun EditRecipeScreen(
     recipeId: Long,
     onBack: () -> Unit
 ) {
-    val ingredientsSuggestionRepo = container.ingredientSuggestionsRepositoryForCurrentUser()
+    val ingredientsSuggestionRepo = container.suggestionsRepositoryForCurrentUser()
     val repo = remember { container.recipeRepositoryForCurrentUser() }
     val vm = remember { EditRecipeViewModel(recipeId, repo, ingredientsSuggestionRepo) }
     val data by vm.recipe.collectAsState()
-    val suggestions by container.ingredientSuggestionsRepositoryForCurrentUser().observeAllMerged()
-        .collectAsState(initial = emptyList())
+    val suggestions by vm.suggestions.collectAsState()
 
     var title by rememberSaveable { mutableStateOf("") }
     var desc by rememberSaveable { mutableStateOf("") }
@@ -124,6 +125,7 @@ fun EditRecipeScreen(
     }
 
     Scaffold(
+        modifier = Modifier.imePadding(),
         topBar = {
             EditRecipeTopBar(
                 title = "Edit Recipe",
@@ -228,7 +230,7 @@ fun EditRecipeForm(
     padding: PaddingValues,
     isLoading: Boolean,
     title: String,
-    suggestions: List<String>,
+    suggestions: SuggestionsUi,
     onTitleChange: (String) -> Unit,
     desc: String,
     onDescChange: (String) -> Unit,
@@ -313,6 +315,7 @@ fun EditRecipeForm(
                     steps.forEachIndexed { idx, step ->
                         StepItemRow(
                             s = step,
+                            suggestions = suggestions,
                             idx = idx + 1,
                             onChange = { onStepChange(idx, it) },
                             onRemove = { onStepsRemove(idx) })

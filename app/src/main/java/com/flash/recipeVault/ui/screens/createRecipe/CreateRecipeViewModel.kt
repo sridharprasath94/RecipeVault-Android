@@ -1,13 +1,17 @@
 package com.flash.recipeVault.ui.screens.createRecipe
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.flash.recipeVault.data.IngredientSuggestionsRepository
+import com.flash.recipeVault.data.SuggestionsRepository
 import com.flash.recipeVault.data.RecipeRepository
+import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.ui.components.IngredientFormRow
+import com.flash.recipeVault.ui.model.SuggestionsUi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 data class CreateRecipeUiState(
@@ -17,10 +21,28 @@ data class CreateRecipeUiState(
 
 class CreateRecipeViewModel(
     private val repo: RecipeRepository,
-    private val ingredientSuggestionsRepo: IngredientSuggestionsRepository,
+    private val suggestionsRepo: SuggestionsRepository,
 ) : ViewModel() {
     private val _ui = MutableStateFlow(CreateRecipeUiState())
     val ui: StateFlow<CreateRecipeUiState> = _ui
+
+    val suggestions: StateFlow<SuggestionsUi> =
+        combine(
+            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+        ) { ing, unit, step ->
+            SuggestionsUi(
+                ingredients = ing,
+                units = unit,
+                steps = step
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = SuggestionsUi()
+        )
+
     private fun validate(
         title: String,
         ingredients: List<Triple<String, String?, String?>>,
@@ -58,13 +80,12 @@ class CreateRecipeViewModel(
         val cleanTitle = title.trim()
         val cleanDesc = description?.trim()?.ifEmpty { null }
 
-        // Normalize inputs (trim + drop empty rows)
         val cleanIngredients = ingredients
             .map { (n, q, u) ->
                 Triple(
                     n.trim(),
-                    q.trim().ifEmpty { null },
-                    u.trim().ifEmpty { null }
+                    q.trim(),
+                    u.trim()
                 )
             }
             .filter { it.first.isNotEmpty() }
@@ -88,10 +109,17 @@ class CreateRecipeViewModel(
                     ingredients = cleanIngredients,
                     steps = cleanSteps
                 )
-                ingredients
-                    .map { it.name.trim() }
-                    .filter { it.isNotBlank() }
-                    .forEach { ingredientSuggestionsRepo.addUserIngredient(it) }
+
+                suggestionsRepo.addFromTriples(
+                    SuggestionType.INGREDIENT,
+                    cleanIngredients.map { it.first }
+                )
+
+                suggestionsRepo.addFromTriples(
+                    SuggestionType.UNIT,
+                    cleanIngredients.map { it.third }
+                )
+
                 onDone(id)
             } catch (e: Exception) {
                 _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")
