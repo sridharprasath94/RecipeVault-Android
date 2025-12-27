@@ -22,7 +22,7 @@ open class FirebaseImageStorage(
      * Uploads image to: users/<uid>/recipes/<recipeId>/<random>.jpg
      * Returns public downloadUrl (String) to store in Firestore/Room.
      */
-    suspend fun uploadRecipeImage(recipeId: Long, localUri: String): String {
+    open suspend fun uploadRecipeImage(recipeId: Long, localUri: String): String {
         val bitmap = context.contentResolver.openInputStream(localUri.toUri()).use { input ->
             BitmapFactory.decodeStream(input)
         } ?: error("Failed to decode image")
@@ -49,7 +49,7 @@ open class FirebaseImageStorage(
     }
 
     /** Optional: delete a previously uploaded image by URL */
-    suspend fun deleteByUrl(downloadUrl: String) {
+    open suspend fun deleteByUrl(downloadUrl: String) {
         storage.getReferenceFromUrl(downloadUrl).delete().await()
     }
 }

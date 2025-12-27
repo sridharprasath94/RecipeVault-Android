@@ -31,7 +31,7 @@ fun RecipeListScreenForTest(
                 modifier = Modifier.padding(padding).fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                androidx.compose.material3.Text("No recipes yet. Tap + to add one.")
+                Text("No recipes yet. Tap + to add one.")
             }
         }
     }
