@@ -239,8 +239,6 @@ fun CreateRecipeForm(
             )
         }
 
-        item { Text("Ingredients", style = MaterialTheme.typography.titleMedium) }
-
         item {
             SectionCard(title = "Ingredients") {
                 if (ingredients.isEmpty()) {
