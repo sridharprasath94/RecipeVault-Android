@@ -25,13 +25,13 @@ sealed interface CreateRecipeEvent {
 
 /** Screen state for CreateRecipe. Keeps the screen stateless. */
 data class CreateRecipeUiState(
-    val isSaving: Boolean = false,
     val title: String = "",
     val description: String = "",
     val pickedImageUri: String? = null,
     val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
-    val steps: List<String> = listOf("")
+    val steps: List<String> = listOf(""),
+    val isSaving: Boolean = false,
 )
 
 class CreateRecipeViewModel(
