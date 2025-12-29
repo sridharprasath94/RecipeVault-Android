@@ -2,29 +2,54 @@ package com.flash.recipeVault.ui.screens.createRecipe
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.flash.recipeVault.data.SuggestionsRepository
-import com.flash.recipeVault.data.RecipeRepository
 import com.flash.recipeVault.data.SuggestionType
+import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+sealed interface CreateRecipeEvent {
+    data class Toast(val message: String) : CreateRecipeEvent
+    data class  OnFinishedSaving(val id: Long) : CreateRecipeEvent
+}
+
+/** Screen state for CreateRecipe. Keeps the screen stateless. */
 data class CreateRecipeUiState(
     val isSaving: Boolean = false,
-    val error: String? = null,
+    val title: String = "",
+    val description: String = "",
+    val pickedImageUri: String? = null,
+    val existingImageUrl: String? = null,
+    val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
+    val steps: List<String> = listOf("")
 )
 
 class CreateRecipeViewModel(
-    private val repo: RecipeRepository,
-    private val suggestionsRepo: SuggestionsRepository,
+    container: AppContainer,
 ) : ViewModel() {
+
+    private val recipeRepository = container.recipeRepositoryForCurrentUser()
+    private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
+
     private val _ui = MutableStateFlow(CreateRecipeUiState())
     val ui: StateFlow<CreateRecipeUiState> = _ui
+
+    private val _events = MutableSharedFlow<CreateRecipeEvent>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
+    val events: SharedFlow<CreateRecipeEvent> = _events.asSharedFlow()
 
     val suggestions: StateFlow<SuggestionsUi> =
         combine(
@@ -42,6 +67,74 @@ class CreateRecipeViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = SuggestionsUi()
         )
+
+    fun updateTitle(value: String) {
+        _ui.update { it.copy(title = value) }
+    }
+
+    fun updateDescription(value: String) {
+        _ui.update { it.copy(description = value) }
+    }
+
+    fun onPickedImage(uri: String?) {
+        _ui.update {
+            it.copy(
+                pickedImageUri = uri,
+                // Prefer local picked image over any existing URL
+                existingImageUrl = if (!uri.isNullOrBlank()) null else it.existingImageUrl
+            )
+        }
+    }
+
+    fun onRemoveImage() {
+        _ui.update { it.copy(pickedImageUri = null, existingImageUrl = null) }
+    }
+
+    fun onAddIngredient() {
+        _ui.update { it.copy(ingredients = it.ingredients + IngredientFormRow()) }
+    }
+
+    fun onIngredientChanged(index: Int, row: IngredientFormRow) {
+        _ui.update { state ->
+            val list = state.ingredients.toMutableList()
+            if (index in list.indices) list[index] = row
+            state.copy(ingredients = list)
+        }
+    }
+
+    fun onIngredientRemoved(index: Int) {
+        _ui.update { state ->
+            val list = state.ingredients.toMutableList()
+            if (list.size <= 1) {
+                return@update state.copy(ingredients = listOf(IngredientFormRow()))
+            }
+            if (index in list.indices) list.removeAt(index)
+            state.copy(ingredients = list)
+        }
+    }
+
+    fun onAddStep() {
+        _ui.update { it.copy(steps = it.steps + "") }
+    }
+
+    fun onStepChanged(index: Int, value: String) {
+        _ui.update { state ->
+            val list = state.steps.toMutableList()
+            if (index in list.indices) list[index] = value
+            state.copy(steps = list)
+        }
+    }
+
+    fun onStepRemoved(index: Int) {
+        _ui.update { state ->
+            val list = state.steps.toMutableList()
+            if (list.size <= 1) {
+                return@update state.copy(steps = listOf(""))
+            }
+            if (index in list.indices) list.removeAt(index)
+            state.copy(steps = list)
+        }
+    }
 
     private fun validate(
         title: String,
@@ -62,70 +155,72 @@ class CreateRecipeViewModel(
         return null
     }
 
-    fun clearError() {
-        if (_ui.value.error != null) {
-            _ui.value = _ui.value.copy(error = null)
-        }
-    }
+    /** Screen triggers save; ViewModel cleans + validates + persists. */
+    fun save() {
+        val state = _ui.value
 
-    fun save(
-        title: String,
-        description: String?,
-        imageUri: String?,
-        imageUrl: String?,
-        ingredients: List<IngredientFormRow>,
-        steps: List<String>,
-        onDone: (Long) -> Unit,
-    ) {
-        val cleanTitle = title.trim()
-        val cleanDesc = description?.trim()?.ifEmpty { null }
+        val cleanTitle = state.title.trim()
+        val cleanDesc = state.description.trim().ifEmpty { null }
 
-        val cleanIngredients = ingredients
+        val cleanIngredients = state.ingredients
             .map { (n, q, u) ->
                 Triple(
                     n.trim(),
-                    q.trim(),
-                    u.trim()
+                    q.trim().ifEmpty { null },
+                    u.trim().ifEmpty { null }
                 )
             }
             .filter { it.first.isNotEmpty() }
 
-        val cleanSteps = steps.map { it.trim() }.filter { it.isNotEmpty() }
+        val cleanSteps = state.steps.map { it.trim() }.filter { it.isNotEmpty() }
 
         val error = validate(cleanTitle, cleanIngredients, cleanSteps)
         if (error != null) {
-            _ui.value = _ui.value.copy(error = error)
+            toast(error)
             return
         }
 
         viewModelScope.launch {
             try {
-                _ui.value = _ui.value.copy(isSaving = true, error = null)
-                val id = repo.createRecipe(
+                _ui.update { it.copy(isSaving = true) }
+
+                val id = recipeRepository.createRecipe(
                     title = cleanTitle,
                     description = cleanDesc,
-                    imageUri = imageUri,
-                    imageUrl = imageUrl,
+                    imageUri = state.pickedImageUri,
+                    imageUrl = state.existingImageUrl,
                     ingredients = cleanIngredients,
                     steps = cleanSteps
                 )
 
+                // persist user-entered suggestions (dedup handled by repo)
                 suggestionsRepo.addFromTriples(
-                    SuggestionType.INGREDIENT,
-                    cleanIngredients.map { it.first }
+                    type = SuggestionType.INGREDIENT,
+                    values = cleanIngredients.map { it.first }
                 )
-
                 suggestionsRepo.addFromTriples(
-                    SuggestionType.UNIT,
-                    cleanIngredients.map { it.third }
+                    type = SuggestionType.UNIT,
+                    values = cleanIngredients.mapNotNull { it.third }
                 )
-
-                onDone(id)
+                suggestionsRepo.addFromTriples(
+                    type = SuggestionType.STEP,
+                    values = cleanSteps
+                )
+                onFinishedSaving(id)
             } catch (e: Exception) {
-                _ui.value = _ui.value.copy(error = e.message ?: "Failed to save")
+                toast(e.message ?: "Failed to save")
             } finally {
-                _ui.value = _ui.value.copy(isSaving = false)
+                _ui.update { it.copy(isSaving = false) }
             }
         }
     }
+
+    private fun onFinishedSaving(id: Long) {
+        _events.tryEmit(CreateRecipeEvent.OnFinishedSaving(id))
+    }
+
+    private fun toast(message: String) {
+        _events.tryEmit(CreateRecipeEvent.Toast(message))
+    }
+
 }

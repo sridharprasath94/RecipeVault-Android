@@ -34,7 +34,7 @@ class RecipeListScreenTest {
 
         rule.setContent {
             RecipeVaultTheme {
-                RecipeListScreenForTest(repo = repo)
+                RecipeListScreenForTest()
             }
         }
 

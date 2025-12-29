@@ -17,7 +17,9 @@ import com.flash.recipeVault.ui.screens.auth.AuthScreen
 import com.flash.recipeVault.ui.screens.auth.AuthState
 import com.flash.recipeVault.ui.screens.auth.AuthViewModel
 import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeScreen
+import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeViewModel
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
+import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeViewModel
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListViewModel
@@ -86,8 +88,9 @@ fun AppRoot(container: AppContainer) {
                 )
             }
             composable(Routes.CREATE) {
+                val vm = remember { CreateRecipeViewModel(container) }
                 CreateRecipeScreen(
-                    container = container,
+                    vm = vm,
                     onBack = { nav.popBackStack() },
                     onCreated = { id ->
                         nav.popBackStack()
@@ -112,9 +115,9 @@ fun AppRoot(container: AppContainer) {
                 arguments = listOf(navArgument("id") { type = NavType.LongType })
             ) { backStack ->
                 val id = backStack.arguments?.getLong("id") ?: return@composable
+                val vm = remember(id) { EditRecipeViewModel(container, id) }
                 EditRecipeScreen(
-                    container = container,
-                    recipeId = id,
+                    vm = vm,
                     onBack = { nav.popBackStack() }
                 )
             }

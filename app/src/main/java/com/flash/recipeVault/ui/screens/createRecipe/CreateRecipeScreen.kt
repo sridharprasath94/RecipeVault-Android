@@ -1,6 +1,5 @@
 package com.flash.recipeVault.ui.screens.createRecipe
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,21 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import com.flash.recipeVault.data.SuggestionType
-import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientItem
@@ -56,53 +46,43 @@ import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import rememberAnimatedImeBottomPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRecipeScreen(
-    container: AppContainer,
+    vm: CreateRecipeViewModel,
     onBack: () -> Unit,
     onCreated: (Long) -> Unit
 ) {
-    val ingredientsSuggestionRepo = container.suggestionsRepositoryForCurrentUser()
-    val vm = remember {
-        CreateRecipeViewModel(
-            container.recipeRepositoryForCurrentUser(),
-            ingredientsSuggestionRepo
-        )
-    }
-
-    var title by rememberSaveable { mutableStateOf("") }
-    var desc by rememberSaveable { mutableStateOf("") }
     val suggestions by vm.suggestions.collectAsState()
-
-    val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
-    val steps = remember { mutableStateListOf("") }
-
-    var imageUri by rememberSaveable { mutableStateOf<String?>(null) }
+    val ui by vm.ui.collectAsState()
+    val context = LocalContext.current
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> imageUri = uri?.toString() }
+        onResult = { uri -> vm.onPickedImage(uri?.toString()) }
     )
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val ui by vm.ui.collectAsState()
-    val errorMessage = (ui.error)
-    val context = LocalContext.current
-
-
-    LaunchedEffect(errorMessage) {
-        if (!errorMessage.isNullOrBlank()) {
-            Log.d("AuthScreen", "Authentication error: $errorMessage")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            vm.clearError()
-        }
-    }
     val keyboardController = LocalSoftwareKeyboardController.current
     val imePadding = rememberAnimatedImeBottomPadding()
+
+    LaunchedEffect(Unit) {
+        vm.events.collectLatest { event ->
+            when (event) {
+                is CreateRecipeEvent.Toast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+
+                is CreateRecipeEvent.OnFinishedSaving -> {
+                    onCreated(event.id)
+                }
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
@@ -113,16 +93,7 @@ fun CreateRecipeScreen(
                 isSaving = ui.isSaving,
                 onSave = {
                     keyboardController?.hide()
-
-                    vm.save(
-                        title = title,
-                        description = desc,
-                        imageUri = imageUri,
-                        imageUrl = null,
-                        ingredients = ingredients.toList(),
-                        steps = steps.toList(),
-                        onDone = onCreated,
-                    )
+                    vm.save()
                 }
             )
         }
@@ -130,31 +101,43 @@ fun CreateRecipeScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             CreateRecipeForm(
                 padding = padding,
-                title = title,
+                title = ui.title,
                 suggestions = suggestions,
-                onTitleChange = { title = it },
-                desc = desc,
-                onDescChange = { desc = it },
-                imageUri = imageUri,
+                onTitleChange = vm::updateTitle,
+                desc = ui.description,
+                onDescChange = vm::updateDescription,
+                imageUri = ui.pickedImageUri,
                 onPickImage = {
                     pickImageLauncher.launch(
                         PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                     )
                 },
-                onRemoveImage = { imageUri = null },
-                ingredients = ingredients,
-                onIngredientChange = { idx, row -> ingredients[idx] = row },
-                onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
+                onRemoveImage = vm::onRemoveImage,
+                ingredients = ui.ingredients,
+                onIngredientChange = vm::onIngredientChanged,
+                onIngredientRemove = vm::onIngredientRemoved,
                 onAddIngredient = {
-                    ingredients.add(IngredientFormRow())
-                    scope.launch { listState.animateScrollToItem(ingredients.lastIndex) }
+                    vm.onAddIngredient()
+                    scope.launch {
+                        listState.animateScrollToItem(
+                            listState.layoutInfo.totalItemsCount.coerceAtLeast(
+                                1
+                            ) - 1
+                        )
+                    }
                 },
-                steps = steps,
-                onStepChange = { idx, value -> steps[idx] = value },
-                onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
+                steps = ui.steps,
+                onStepChange = vm::onStepChanged,
+                onStepsRemove = vm::onStepRemoved,
                 onAddStep = {
-                    steps.add("")
-                    scope.launch { listState.animateScrollToItem(steps.lastIndex) }
+                    vm.onAddStep()
+                    scope.launch {
+                        listState.animateScrollToItem(
+                            listState.layoutInfo.totalItemsCount.coerceAtLeast(
+                                1
+                            ) - 1
+                        )
+                    }
                 }
             )
 
@@ -185,18 +168,37 @@ fun CreateRecipeTopBar(
     isSaving: Boolean,
     onSave: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = onBack) { Icon(Icons.Default.Close, contentDescription = "Close") }
-        },
-        actions = {
-            TextButton(onClick = onSave, enabled = !isSaving) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text("Save")
+    Box {
+        TopAppBar(
+            title = { Text(title) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Close"
+                    )
+                }
+            },
+            actions = {
+                TextButton(onClick = onSave, enabled = !isSaving) {
+                    if (isSaving) CircularProgressIndicator(
+                        Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                    else Text("Save")
+                }
             }
+        )
+
+        if (isSaving) {
+            // 🔒 Touch-blocking overlay
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(Unit) { /* consume all touches */ }
+            )
         }
-    )
+    }
 }
 
 @Composable
@@ -210,11 +212,11 @@ fun CreateRecipeForm(
     imageUri: String?,
     onPickImage: () -> Unit,
     onRemoveImage: () -> Unit,
-    ingredients: SnapshotStateList<IngredientFormRow>,
+    ingredients: List<IngredientFormRow>,
     onIngredientChange: (Int, IngredientFormRow) -> Unit,
     onIngredientRemove: (Int) -> Unit,
     onAddIngredient: () -> Unit,
-    steps: SnapshotStateList<String>,
+    steps: List<String>,
     onStepChange: (Int, String) -> Unit,
     onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
@@ -300,4 +302,3 @@ fun CreateRecipeForm(
         }
     }
 }
-

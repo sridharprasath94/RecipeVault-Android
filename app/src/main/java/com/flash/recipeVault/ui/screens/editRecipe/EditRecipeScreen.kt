@@ -1,6 +1,5 @@
 package com.flash.recipeVault.ui.screens.editRecipe
 
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,19 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.AddItemButton
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.IngredientItem
@@ -54,93 +46,54 @@ import com.flash.recipeVault.ui.components.RecipeImagePicker
 import com.flash.recipeVault.ui.components.StepItemRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import rememberAnimatedImeBottomPadding
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditRecipeScreen(
-    container: AppContainer,
-    recipeId: Long,
+    vm: EditRecipeViewModel,
     onBack: () -> Unit
 ) {
-    val ingredientsSuggestionRepo = container.suggestionsRepositoryForCurrentUser()
-    val repo = remember { container.recipeRepositoryForCurrentUser() }
-    val vm = remember { EditRecipeViewModel(recipeId, repo, ingredientsSuggestionRepo) }
     val data by vm.recipe.collectAsState()
     val suggestions by vm.suggestions.collectAsState()
-
-    var title by rememberSaveable { mutableStateOf("") }
-    var desc by rememberSaveable { mutableStateOf("") }
-    val ingredients = remember { mutableStateListOf(IngredientFormRow()) }
-    val steps = remember { mutableStateListOf("") }
-    var pickedImageUri by rememberSaveable { mutableStateOf<String?>(null) }
-    var alreadyAvailableImageUrl by rememberSaveable { mutableStateOf<String?>(null) }
+    val ui by vm.ui.collectAsState()
+    val context = LocalContext.current
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
-            pickedImageUri = uri?.toString()
-            alreadyAvailableImageUrl = null
-        }
+        onResult = { uri -> vm.onPickedImage(uri?.toString()) }
     )
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val imePadding = rememberAnimatedImeBottomPadding()
 
-    val ui by vm.ui.collectAsState()
-    val errorMessage = (ui.error)
-    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        vm.events.collectLatest { event ->
+            when (event) {
+                is EditRecipeEvent.Toast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
 
-
-    LaunchedEffect(errorMessage) {
-        if (!errorMessage.isNullOrBlank()) {
-            Log.d("AuthScreen", "Authentication error: $errorMessage")
-            Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
-            vm.clearError()
+                EditRecipeEvent.OnFinishedSaving -> {
+                    onBack()
+                }
+            }
         }
-    }
-
-    LaunchedEffect(data?.recipe?.id) {
-        val r = data ?: return@LaunchedEffect
-        title = r.recipe.title
-        desc = r.recipe.description ?: ""
-        alreadyAvailableImageUrl = r.recipe.imageUrl
-
-        ingredients.clear()
-        val ing = r.ingredients.sortedBy { it.sortOrder }
-        if (ing.isEmpty()) ingredients.add(0, IngredientFormRow())
-        else ing.forEach {
-            ingredients.add(
-                IngredientFormRow(
-                    it.name,
-                    it.quantity ?: "",
-                    it.unit ?: ""
-                )
-            )
-        }
-
-        steps.clear()
-        val st = r.steps.sortedBy { it.sortOrder }
-        if (st.isEmpty()) steps.add("")
-        else st.forEach { steps.add(it.instruction) }
     }
 
     Scaffold(
-        modifier = Modifier.imePadding(),
+        modifier = Modifier.padding(bottom = imePadding),
         topBar = {
             EditRecipeTopBar(
                 title = "Edit Recipe",
                 onBack = onBack,
                 isSaving = ui.isSaving,
                 onSave = {
-                    vm.save(
-                        title = title,
-                        description = desc,
-                        imageUri = pickedImageUri,
-                        imageUrl = alreadyAvailableImageUrl,
-                        ingredients = ingredients.toList(),
-                        steps = steps.toList(),
-                        onDone = onBack,
-                    )
+                    keyboardController?.hide()
+                    vm.save()
                 }
             )
         }
@@ -149,13 +102,13 @@ fun EditRecipeScreen(
             EditRecipeForm(
                 padding = padding,
                 isLoading = data == null,
-                title = title,
+                title = ui.title,
                 suggestions = suggestions,
-                onTitleChange = { title = it },
-                desc = desc,
-                onDescChange = { desc = it },
-                pickedImageUri = pickedImageUri,
-                alreadyAvailableImageUrl = alreadyAvailableImageUrl,
+                onTitleChange = vm::updateTitle,
+                desc = ui.description,
+                onDescChange = vm::updateDescription,
+                pickedImageUri = ui.pickedImageUri,
+                alreadyAvailableImageUrl = ui.existingImageUrl,
                 onPickImage = {
                     pickImageLauncher.launch(
                         PickVisualMediaRequest(
@@ -163,28 +116,29 @@ fun EditRecipeScreen(
                         )
                     )
                 },
-                onRemoveImage = {
-                    pickedImageUri = null
-                    alreadyAvailableImageUrl = null
-                },
-                ingredients = ingredients,
-                onIngredientChange = { idx, row -> ingredients[idx] = row },
-                onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
+                onRemoveImage = vm::onRemoveImage,
+                ingredients = ui.ingredients,
+                onIngredientChange = vm::onIngredientChanged,
+                onIngredientRemove = vm::onIngredientRemoved,
                 onAddIngredient = {
-                    ingredients.add(IngredientFormRow())
-                    scope.launch { listState.animateScrollToItem(ingredients.lastIndex) }
+                    vm.onAddIngredient()
+                    scope.launch {
+                        listState.animateScrollToItem(ui.ingredients.lastIndex)
+                    }
                 },
-                steps = steps,
-                onStepChange = { idx, value -> steps[idx] = value },
-                onStepsRemove = { idx -> if (steps.size > 1) steps.removeAt(idx) },
+                steps = ui.steps,
+                onStepChange = vm::onStepChanged,
+                onStepsRemove = vm::onStepRemoved,
                 onAddStep = {
-                    steps.add("")
-                    scope.launch { listState.animateScrollToItem(steps.lastIndex) }
+                    vm.onAddStep()
+                    scope.launch {
+                        listState.animateScrollToItem(ui.steps.lastIndex)
+                    }
                 },
             )
 
             // ✅ Overlay that blocks touches + dims UI
-            if (ui.isSaving) {
+            if (ui.isSaving || ui.isLoadingData) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -209,20 +163,34 @@ fun EditRecipeTopBar(
     onBack: () -> Unit,
     onSave: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text(title) },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+    Box {
+        TopAppBar(
+            title = { Text(title) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+            },
+            actions = {
+                TextButton(onClick = onSave, enabled = !isSaving) {
+                    if (isSaving) CircularProgressIndicator(
+                        Modifier.size(18.dp),
+                        strokeWidth = 2.dp
+                    )
+                    else Text("Save")
+                }
             }
-        },
-        actions = {
-            TextButton(onClick = onSave, enabled = !isSaving) {
-                if (isSaving) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text("Save")
-            }
+        )
+
+        if (isSaving) {
+            // 🔒 Touch-blocking overlay
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .pointerInput(Unit) { /* consume all touches */ }
+            )
         }
-    )
+    }
 }
 
 @Composable
@@ -238,11 +206,11 @@ fun EditRecipeForm(
     alreadyAvailableImageUrl: String?,
     onPickImage: () -> Unit,
     onRemoveImage: () -> Unit,
-    ingredients: SnapshotStateList<IngredientFormRow>,
+    ingredients: List<IngredientFormRow>,
     onIngredientChange: (Int, IngredientFormRow) -> Unit,
     onIngredientRemove: (Int) -> Unit,
     onAddIngredient: () -> Unit,
-    steps: SnapshotStateList<String>,
+    steps: List<String>,
     onStepChange: (Int, String) -> Unit,
     onStepsRemove: (Int) -> Unit,
     onAddStep: () -> Unit,
