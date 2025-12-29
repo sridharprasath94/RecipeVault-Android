@@ -19,14 +19,17 @@ class FirestoreSyncService(
     private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
 
-    private fun userRecipesCol(uid: String) =
-        firestore.collection("users").document(uid).collection("recipes")
+    private fun uid(): String = auth.currentUser?.uid ?: error("User not logged in")
+
+    private var listener: ListenerRegistration? = null
+
+    private fun userRecipesCol() =
+        firestore.collection("users").document(uid()).collection("recipes")
 
     suspend fun syncNow() {
-        val uid = auth.currentUser?.uid ?: return
 
         // 1) Pull remote -> local (merge by updatedAt)
-        val remoteSnap = userRecipesCol(uid).get().await()
+        val remoteSnap = userRecipesCol().get().await()
         for (doc in remoteSnap.documents) {
             val id = doc.id.toLongOrNull() ?: continue
             val updatedAt = doc.getLong("updatedAt") ?: 0L
@@ -76,7 +79,7 @@ class FirestoreSyncService(
         // 2) Push local -> remote (merge by updatedAt)
         val locals = repo.getAllLocalRecipesIncludingDeleted()
         for (local in locals) {
-            val docRef = userRecipesCol(uid).document(local.id.toString())
+            val docRef = userRecipesCol().document(local.id.toString())
             val remote = docRef.get().await()
             val remoteUpdated = remote.getLong("updatedAt") ?: -1L
             if (!remote.exists() || local.updatedAt > remoteUpdated) {
@@ -116,14 +119,10 @@ class FirestoreSyncService(
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    fun startRealtime(onError: (Exception) -> Unit = {}) : ListenerRegistration? {
-        val uid = auth.currentUser?.uid ?: return null
-        return userRecipesCol(uid).addSnapshotListener { snapshots, e ->
-            if (e != null) {
-                onError(e)
-                return@addSnapshotListener
-            }
-            if (snapshots == null) return@addSnapshotListener
+    fun startRealtime() {
+        if (listener != null) return
+        listener = userRecipesCol().addSnapshotListener { snapshots, err ->
+            if (err != null || snapshots == null) return@addSnapshotListener
 
             // Apply remote changes incrementally
             for (change in snapshots.documentChanges) {
@@ -173,9 +172,14 @@ class FirestoreSyncService(
 
                 // Fire-and-forget; Room writes are suspend so we launch a coroutine via a lightweight thread.
                 GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-                    repo.applyRemoteRecipe(recipe, ingredients, steps)
+                    runCatching { repo.applyRemoteRecipe(recipe, ingredients, steps) }
                 }
             }
         }
+    }
+
+    fun stopRealTime() {
+        listener?.remove()
+        listener = null
     }
 }

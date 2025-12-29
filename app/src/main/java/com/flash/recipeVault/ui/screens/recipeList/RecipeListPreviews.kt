@@ -39,65 +39,15 @@ private fun previewRecipes(): List<RecipeEntity> = listOf(
     ),
 )
 
-@Preview(name = "TopBar - Menu Closed", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListTopBarPreview_Closed() {
-    Scaffold(
-        topBar = {
-            RecipeListTopBar(
-                showMenu = false,
-                isCloudSynced =  false,
-                isSyncing = false,
-                onOpenMenu = {},
-                onDismissMenu = {},
-                onSyncWithCloud = {},
-                onBackup = {},
-                onShare = {},
-                onLogoutClick = {},
-            )
-        }
-    ) { padding ->
-        Box(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-        )
-    }
-}
-
-@Preview(name = "TopBar - Menu Open", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListTopBarPreview_Open() {
-    Scaffold(
-        topBar = {
-            RecipeListTopBar(
-                showMenu = true,
-                isCloudSynced =  false,
-                isSyncing = true,
-                onOpenMenu = {},
-                onDismissMenu = {},
-                onSyncWithCloud = {},
-                onBackup = {},
-                onShare = {},
-                onLogoutClick = {},
-            )
-        }
-    ) { padding ->
-        Box(
-            Modifier
-                .padding(padding)
-                .fillMaxSize()
-        )
-    }
-}
 
 @Preview(name = "List - Empty State", showBackground = true, widthDp = 360, heightDp = 720)
 @Composable
 private fun RecipeListBodyPreview_Empty() {
     RecipeListBody(
         padding = PaddingValues(0.dp),
-        recipes = emptyList(),
+        rows = emptyList(),
         onOpen = {},
+        onEdit = {},
         onDeleteClick = {},
     )
 }
@@ -107,8 +57,9 @@ private fun RecipeListBodyPreview_Empty() {
 private fun RecipeListBodyPreview_List() {
     RecipeListBody(
         padding = PaddingValues(0.dp),
-        recipes = previewRecipes(),
+        rows = emptyList(),
         onOpen = {},
+        onEdit = {},
         onDeleteClick = {},
     )
 }
@@ -117,8 +68,11 @@ private fun RecipeListBodyPreview_List() {
 @Composable
 private fun RecipeListItemPreview_WithDescription() {
     RecipeListItem(
-        recipe = previewRecipes().first(),
+        row = RecipeListRowUi(
+            recipe = previewRecipes().first(),
+        ),
         onOpen = {},
+        onEdit = {},
         onDeleteClick = {},
     )
 }
@@ -127,8 +81,11 @@ private fun RecipeListItemPreview_WithDescription() {
 @Composable
 private fun RecipeListItemPreview_NoDescription() {
     RecipeListItem(
-        recipe = previewRecipes().last(),
+        row = RecipeListRowUi(
+            recipe = previewRecipes().last(),
+        ),
         onOpen = {},
+        onEdit = {},
         onDeleteClick = {},
     )
 }
