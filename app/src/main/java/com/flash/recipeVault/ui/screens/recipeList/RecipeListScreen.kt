@@ -143,8 +143,7 @@ fun RecipeListScreen(
                     context,
                     event.message,
                     Toast.LENGTH_LONG
-                )
-                    .show()
+                ).show()
 
                 RecipeListEvent.SyncNow -> {
                     if (!ui.isSyncing) {
@@ -202,7 +201,6 @@ fun RecipeListScreen(
                 }
 
                 RecipeListEvent.LoggedOut -> onLoggedOut()
-
             }
         }
     }
