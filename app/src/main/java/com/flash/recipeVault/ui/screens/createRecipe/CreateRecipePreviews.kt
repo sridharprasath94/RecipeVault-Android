@@ -1,13 +1,11 @@
 package com.flash.recipeVault.ui.screens.createRecipe
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,13 +29,19 @@ private fun previewSteps(): SnapshotStateList<String> =
         "Mix and serve.",
     )
 
-@Preview(name = "TopBar - isSavingFalse", showBackground = true, widthDp = 360)
+private fun previewSuggestions() = SuggestionsUi(
+    ingredients = listOf("Pasta", "Tomato", "Garlic", "Chili", "Basil"),
+    units = listOf("g", "pcs", "cloves", "tbsp", "tsp"),
+    steps = listOf("Boil", "Cook", "Mix", "Serve")
+)
+
+@Preview(name = "TopBar - isSavingFalse", showBackground = true, widthDp = 550, heightDp = 1300)
 @Composable
 private fun CreateRecipeTopBarIsSavingFalsePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
-                FormTopBar (
+                FormTopBar(
                     title = "New Recipe",
                     actionLabel = "Save",
                     isInteractionEnabled = false,
@@ -55,13 +59,13 @@ private fun CreateRecipeTopBarIsSavingFalsePreview() {
     }
 }
 
-@Preview(name = "TopBar - isSavingTrue", showBackground = true, widthDp = 360)
+@Preview(name = "TopBar - isSavingTrue", showBackground = true, widthDp = 550, heightDp = 1300)
 @Composable
 private fun CreateRecipeTopBarIsSavingTruePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
-                FormTopBar (
+                FormTopBar(
                     title = "New Recipe",
                     actionLabel = "Save",
                     isInteractionEnabled = false,
@@ -79,85 +83,30 @@ private fun CreateRecipeTopBarIsSavingTruePreview() {
     }
 }
 
-
-@Preview(name = "Form - Empty", showBackground = true, widthDp = 360, heightDp = 720)
+@Preview(showBackground = true, widthDp = 550, heightDp = 1300)
 @Composable
-private fun CreateRecipeFormPreview_Empty() {
-    RecipeVaultTheme {
-        CreateRecipeForm(
-            padding = PaddingValues(0.dp),
-            title = "",
-            suggestions = SuggestionsUi(),
-            onTitleChange = {},
-            desc = "",
-            onDescChange = {},
-            imageUri = null,
-            onPickImage = {},
-            onRemoveImage = {},
-            ingredients = remember { mutableStateListOf(IngredientFormRow()) },
-            onIngredientChange = { _, _ -> },
-            onIngredientRemove = { _ -> },
-            onAddIngredient = {},
-            steps = remember { mutableStateListOf("") },
-            onStepChange = { _, _ -> },
-            onStepsRemove = { _ -> },
-            onAddStep = {},
-        )
-    }
+fun CreateRecipeScreenPreview() {
+    CreateRecipeContent(
+        ui = CreateRecipeUiState(
+            title = "Paneer Butter Masala",
+            description = "Rich and creamy curry",
+            ingredients = previewIngredients(),
+            steps = previewSteps(),
+            isSaving = false,
+        ),
+        suggestions = previewSuggestions(),
+        isFinishing = false,
+        onBack = {},
+        onSave = {},
+        onTitleChange = {},
+        onDescChange = {},
+        onPickImage = {},
+        onRemoveImage = {},
+        onIngredientChange = { _, _ -> },
+        onIngredientRemove = {},
+        onIngredientAdd = {},
+        onStepChange = { _, _ -> },
+        onStepRemove = {},
+        onStepAdd = {}
+    )
 }
-
-@Preview(name = "Form - Filled", showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-private fun CreateRecipeFormPreview_Filled() {
-    val ingredients = previewIngredients()
-    val steps = previewSteps()
-
-    RecipeVaultTheme {
-        CreateRecipeForm(
-            padding = PaddingValues(0.dp),
-            title = "Pasta Arrabbiata",
-            suggestions = SuggestionsUi(),
-            onTitleChange = {},
-            desc = "Spicy tomato pasta with garlic and chili flakes.",
-            onDescChange = {},
-            imageUri = null,
-            onPickImage = {},
-            onRemoveImage = {},
-            ingredients = ingredients,
-            onIngredientChange = { idx, row -> ingredients[idx] = row },
-            onIngredientRemove = { idx -> if (ingredients.size > 1) ingredients.removeAt(idx) },
-            onAddIngredient = { ingredients.add(0, IngredientFormRow()) },
-            steps = steps,
-            onStepsRemove = { _ -> },
-            onStepChange = { idx, v -> steps[idx] = v },
-            onAddStep = { steps.add("") },
-        )
-    }
-}
-
-@Preview(name = "Error Text", showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-private fun CreateRecipeFormPreview_Error() {
-    RecipeVaultTheme {
-        CreateRecipeForm(
-            padding = PaddingValues(0.dp),
-            title = "",
-            suggestions = SuggestionsUi(),
-            onTitleChange = {},
-            desc = "",
-            onDescChange = {},
-            imageUri = null,
-            onPickImage = {},
-            onRemoveImage = {},
-            ingredients = remember { mutableStateListOf(IngredientFormRow()) },
-            onIngredientChange = { _, _ -> },
-            onIngredientRemove = { _ -> },
-            onAddIngredient = {},
-            steps = remember { mutableStateListOf("") },
-            onStepsRemove = { _ -> },
-            onStepChange = { _, _ -> },
-            onAddStep = {},
-        )
-    }
-}
-

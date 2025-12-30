@@ -4,13 +4,19 @@ import MatchMode
 import SuggestionAutoCompleteField
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.ui.model.SuggestionsUi
+import com.flash.recipeVault.ui.screens.recipeDetail.SectionCard
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 data class IngredientFormRow(
@@ -170,6 +177,128 @@ fun StepItemRow(
     }
 }
 
+@Composable
+fun RecipeForm(
+    padding: PaddingValues,
+    isLoading: Boolean,
+    title: String,
+    onTitleChange: (String) -> Unit,
+    desc: String,
+    onDescChange: (String) -> Unit,
+    pickedImageUri: String?,
+    existingImageUrl: String?,
+    onPickImage: () -> Unit,
+    onRemoveImage: () -> Unit,
+    ingredients: List<IngredientFormRow>,
+    onIngredientChange: (Int, IngredientFormRow) -> Unit,
+    onIngredientRemove: (Int) -> Unit,
+    onIngredientAdd: () -> Unit,
+    steps: List<String>,
+    onStepChange: (Int, String) -> Unit,
+    onStepRemove: (Int) -> Unit,
+    onStepAdd: () -> Unit,
+    suggestions: SuggestionsUi,
+) {
+    LazyColumn(
+        modifier = Modifier
+            .padding(padding)
+            .fillMaxSize(),
+        contentPadding = PaddingValues(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+
+        if (isLoading) {
+            item {
+                Text("Loading…")
+            }
+        }
+
+        item {
+            RecipeEditFields(
+                title = title,
+                onTitleChange = onTitleChange,
+                desc = desc,
+                onDescChange = onDescChange,
+            )
+        }
+
+        item {
+            RecipeImagePicker(
+                pickedImageUri = pickedImageUri,
+                existingImageUrl = existingImageUrl,
+                onPickClick = onPickImage,
+                onRemoveClick = onRemoveImage
+            )
+        }
+
+        item {
+            SectionCard(title = "Ingredients") {
+                if (ingredients.isEmpty()) {
+                    Text(
+                        "No ingredients added.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    ingredients.forEachIndexed { idx, row ->
+                        IngredientItem(
+                            index = idx + 1,
+                            suggestions = suggestions,
+                            row = row,
+                            onChange = { onIngredientChange(idx, it) },
+                            onRemove = { onIngredientRemove(idx) }
+                        )
+
+                        if (idx != ingredients.lastIndex) {
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 10.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            AddItemButton(
+                text = "Add ingredient",
+                onClick = onIngredientAdd
+            )
+        }
+
+        item {
+            SectionCard(title = "Steps") {
+                if (steps.isEmpty()) {
+                    Text(
+                        "No steps added.",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                } else {
+                    steps.forEachIndexed { idx, step ->
+                        StepItemRow(
+                            s = step,
+                            suggestions = suggestions,
+                            idx = idx + 1,
+                            onChange = { onStepChange(idx, it) },
+                            onRemove = { onStepRemove(idx) }
+                        )
+
+                        if (idx != steps.lastIndex) {
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            AddItemButton(
+                text = "Add Step",
+                onClick = onStepAdd
+            )
+        }
+    }
+}
+
 @Preview(name = "Ingredient Item Preview", showBackground = true, widthDp = 360)
 @Composable
 private fun IngredientItemPreview() {
@@ -203,4 +332,41 @@ private fun StepItemRowPreview() {
 }
 
 
+@Preview(name = "Recipe Form Preview", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun RecipeFormPreview() {
+    RecipeVaultTheme {
+        RecipeForm(
+            padding = PaddingValues(0.dp),
+            isLoading = false,
+            title = "Delicious Pasta",
+            onTitleChange = {},
+            desc = "A simple and delicious pasta recipe.",
+            onDescChange = {},
+            pickedImageUri = null,
+            existingImageUrl = null,
+            onPickImage = {},
+            onRemoveImage = {},
+            ingredients = listOf(
+                IngredientFormRow("Pasta", "200", "grams"),
+                IngredientFormRow("Tomato Sauce", "150", "ml"),
+            ),
+            onIngredientChange = { _, _ -> },
+            onIngredientRemove = {},
+            onIngredientAdd = {},
+            steps = listOf(
+                "Boil the pasta until al dente.",
+                "Heat the tomato sauce in a pan."
+            ),
+            onStepChange = { _, _ -> },
+            onStepRemove = {},
+            onStepAdd = {},
+            suggestions = SuggestionsUi(
+                ingredients = listOf("Pasta", "Tomato Sauce", "Onion", "Garlic"),
+                units = listOf("grams", "ml", "cups", "tablespoons"),
+                steps = listOf("Chop the onions finely.", "Boil the pasta until al dente.")
+            )
+        )
+    }
+}
 
