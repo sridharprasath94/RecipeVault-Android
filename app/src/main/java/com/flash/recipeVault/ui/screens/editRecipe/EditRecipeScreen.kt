@@ -91,8 +91,8 @@ fun EditRecipeScreen(
             FormTopBar(
                 title = "Edit Recipe",
                 actionLabel = "Save",
-                onBack = onBack,
                 isInteractionEnabled = !ui.isSaving && !ui.isLoadingData && !isFinishing,
+                onBack = onBack,
                 onPrimaryAction = {
                     keyboardController?.hide()
                     vm.save()
