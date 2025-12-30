@@ -149,8 +149,6 @@ class CreateRecipeViewModel(
     }
 
     fun save() {
-        if(_ui.value.isSaving) return
-        _ui.update { it.copy(isSaving = true) }
         val state = _ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim().ifEmpty { null }
@@ -173,8 +171,10 @@ class CreateRecipeViewModel(
             return
         }
 
+       if(_ui.value.isSaving) return
         viewModelScope.launch {
             try {
+                _ui.update { it.copy(isSaving = true) }
                 val id = recipeRepository.createRecipe(
                     title = cleanTitle,
                     description = cleanDesc,
