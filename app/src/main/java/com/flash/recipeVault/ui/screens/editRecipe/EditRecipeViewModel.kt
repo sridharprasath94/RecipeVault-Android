@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -75,11 +76,11 @@ class EditRecipeViewModel(
     init {
         _ui.update { it.copy(isLoadingData = true) }
         viewModelScope.launch {
-            recipeRepository.observeRecipe(recipeId)
+            val recipe = recipeRepository.observeRecipe(recipeId)
                 .filterNotNull()
-                .collect { recipe ->
-                    _ui.value = mapRecipeToUi(recipe).copy(isLoadingData = false)
-                }
+                .first()
+
+            _ui.value = mapRecipeToUi(recipe).copy(isLoadingData = false)
         }
     }
 
