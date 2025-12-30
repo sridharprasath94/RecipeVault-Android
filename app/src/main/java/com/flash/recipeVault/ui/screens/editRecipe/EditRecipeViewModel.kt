@@ -41,8 +41,8 @@ class EditRecipeViewModel(
     container: AppContainer,
     internal val recipeId: Long,
 ) : ViewModel() {
-    internal val recipeRepository = container.recipeRepositoryForCurrentUser()
-    internal val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
+    private val recipeRepository = container.recipeRepositoryForCurrentUser()
+    private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
     private val _ui = MutableStateFlow(EditRecipeUiState())
     val ui: StateFlow<EditRecipeUiState> = _ui
     val recipe = recipeRepository.observeRecipe(recipeId)
@@ -53,6 +53,24 @@ class EditRecipeViewModel(
         onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val events: SharedFlow<EditRecipeEvent> = _events.asSharedFlow()
+
+    val suggestions: StateFlow<SuggestionsUi> =
+        combine(
+            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+        ) { ing, unit, step ->
+            SuggestionsUi(
+                ingredients = ing,
+                units = unit,
+                steps = step
+            )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = SuggestionsUi()
+        )
+
 
     init {
         _ui.update { it.copy(isLoadingData = true) }
@@ -94,12 +112,12 @@ class EditRecipeViewModel(
         )
     }
 
-    fun updateDescription(description: String) {
-        _ui.update { it.copy(description = description) }
-    }
-
     fun updateTitle(title: String) {
         _ui.update { it.copy(title = title) }
+    }
+
+    fun updateDescription(description: String) {
+        _ui.update { it.copy(description = description) }
     }
 
     fun onPickedImage(uri: String?) {
@@ -116,6 +134,18 @@ class EditRecipeViewModel(
         _ui.update { it.copy(pickedImageUri = null, existingImageUrl = null) }
     }
 
+    fun onAddIngredient() {
+        _ui.update { it.copy(ingredients = it.ingredients + IngredientFormRow()) }
+    }
+
+    fun onIngredientChanged(index: Int, row: IngredientFormRow) {
+        _ui.update { state ->
+            val list = state.ingredients.toMutableList()
+            if (index in list.indices) list[index] = row
+            state.copy(ingredients = list)
+        }
+    }
+
     fun onIngredientRemoved(index: Int) {
         _ui.update { state ->
             val list = state.ingredients.toMutableList()
@@ -123,6 +153,10 @@ class EditRecipeViewModel(
             if (index in list.indices) list.removeAt(index)
             state.copy(ingredients = list)
         }
+    }
+
+    fun onAddStep() {
+        _ui.update { it.copy(steps = it.steps + "") }
     }
 
     fun onStepChanged(index: Int, value: String) {
@@ -133,9 +167,6 @@ class EditRecipeViewModel(
         }
     }
 
-    fun onAddStep() {
-        _ui.update { it.copy(steps = it.steps + "") }
-    }
 
     fun onStepRemoved(index: Int) {
         _ui.update { state ->
@@ -146,34 +177,6 @@ class EditRecipeViewModel(
         }
     }
 
-    fun onAddIngredient() {
-        _ui.update { it.copy(ingredients = it.ingredients + IngredientFormRow()) }
-    }
-
-    fun onIngredientChanged(index: Int, row: IngredientFormRow) {
-        _ui.update { state ->
-            val list = state.ingredients.toMutableList()
-            list[index] = row
-            state.copy(ingredients = list)
-        }
-    }
-
-    val suggestions: StateFlow<SuggestionsUi> =
-        combine(
-            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
-            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
-            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
-        ) { ing, unit, step ->
-            SuggestionsUi(
-                ingredients = ing,
-                units = unit,
-                steps = step
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SuggestionsUi()
-        )
 
     private fun validate(
         title: String,
@@ -196,6 +199,7 @@ class EditRecipeViewModel(
 
 
     fun save() {
+        if(_ui.value.isSaving) return
         val state = ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim()
@@ -243,6 +247,10 @@ class EditRecipeViewModel(
                     cleanIngredients.mapNotNull { it.third }
                 )
 
+                suggestionsRepo.addFromTriples(
+                    SuggestionType.STEP,
+                    cleanSteps
+                )
                 onFinishedSaving()
             } catch (e: Exception) {
                 toast(e.message ?: "Failed to save")

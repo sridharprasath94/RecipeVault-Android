@@ -23,7 +23,6 @@ sealed interface CreateRecipeEvent {
     data class  OnFinishedSaving(val id: Long) : CreateRecipeEvent
 }
 
-/** Screen state for CreateRecipe. Keeps the screen stateless. */
 data class CreateRecipeUiState(
     val title: String = "",
     val description: String = "",
@@ -40,10 +39,8 @@ class CreateRecipeViewModel(
 
     private val recipeRepository = container.recipeRepositoryForCurrentUser()
     private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
-
     private val _ui = MutableStateFlow(CreateRecipeUiState())
     val ui: StateFlow<CreateRecipeUiState> = _ui
-
     private val _events = MutableSharedFlow<CreateRecipeEvent>(
         replay = 0,
         extraBufferCapacity = 1,
@@ -105,9 +102,7 @@ class CreateRecipeViewModel(
     fun onIngredientRemoved(index: Int) {
         _ui.update { state ->
             val list = state.ingredients.toMutableList()
-            if (list.size <= 1) {
-                return@update state.copy(ingredients = listOf(IngredientFormRow()))
-            }
+            if (list.size <= 1) { return@update state.copy(ingredients = listOf(IngredientFormRow())) }
             if (index in list.indices) list.removeAt(index)
             state.copy(ingredients = list)
         }
@@ -128,9 +123,7 @@ class CreateRecipeViewModel(
     fun onStepRemoved(index: Int) {
         _ui.update { state ->
             val list = state.steps.toMutableList()
-            if (list.size <= 1) {
-                return@update state.copy(steps = listOf(""))
-            }
+            if (list.size <= 1) { return@update state.copy(steps = listOf("")) }
             if (index in list.indices) list.removeAt(index)
             state.copy(steps = list)
         }
@@ -155,10 +148,9 @@ class CreateRecipeViewModel(
         return null
     }
 
-    /** Screen triggers save; ViewModel cleans + validates + persists. */
     fun save() {
+        if(_ui.value.isSaving) return
         val state = _ui.value
-
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim().ifEmpty { null }
 
