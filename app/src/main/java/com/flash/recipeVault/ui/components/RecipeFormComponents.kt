@@ -40,7 +40,7 @@ data class IngredientFormRow(
 )
 
 @Composable
-fun IngredientItem(
+fun IngredientFormField(
     index: Int,
     suggestions: SuggestionsUi,
     row: IngredientFormRow,
@@ -127,7 +127,7 @@ fun IngredientItem(
 }
 
 @Composable
-fun StepItemRow(
+fun StepFormField(
     s: String,
     suggestions: SuggestionsUi,
     idx: Int,
@@ -240,7 +240,7 @@ fun RecipeForm(
                     )
                 } else {
                     ingredients.forEachIndexed { idx, row ->
-                        IngredientItem(
+                        IngredientFormField(
                             index = idx + 1,
                             suggestions = suggestions,
                             row = row,
@@ -274,7 +274,7 @@ fun RecipeForm(
                     )
                 } else {
                     steps.forEachIndexed { idx, step ->
-                        StepItemRow(
+                        StepFormField(
                             s = step,
                             suggestions = suggestions,
                             idx = idx + 1,
@@ -301,9 +301,9 @@ fun RecipeForm(
 
 @Preview(name = "Ingredient Item Preview", showBackground = true, widthDp = 360)
 @Composable
-private fun IngredientItemPreview() {
+private fun IngredientFormFieldPreview() {
     RecipeVaultTheme {
-        IngredientItem(
+        IngredientFormField(
             index = 1,
             suggestions = SuggestionsUi(),
             row = IngredientFormRow(
@@ -319,9 +319,9 @@ private fun IngredientItemPreview() {
 
 @Preview(name = "Step Item Row Preview", showBackground = true, widthDp = 360)
 @Composable
-private fun StepItemRowPreview() {
+private fun StepFormFieldPreview() {
     RecipeVaultTheme {
-        StepItemRow(
+        StepFormField(
             s = "Chop the onions finely.",
             suggestions = SuggestionsUi(),
             idx = 1,

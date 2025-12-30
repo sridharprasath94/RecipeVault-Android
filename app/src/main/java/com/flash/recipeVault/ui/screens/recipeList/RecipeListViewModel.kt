@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -121,12 +122,24 @@ class RecipeListViewModel(
     fun requestDelete(id: Long) = _ui.update { it.copy(deleteRecipeId = id) }
     fun dismissDelete() = _ui.update { it.copy(deleteRecipeId = null) }
 
+
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
         _ui.update { it.copy(deleteRecipeId = null) }
+
         viewModelScope.launch {
-            repo.deleteRecipe(id)
-            _events.tryEmit(RecipeListEvent.SyncNow)
+            runCatching {
+                repo.deleteRecipe(id)
+            }.onSuccess {
+                _events.emit(RecipeListEvent.Toast("Recipe deleted"))
+                _events.emit(RecipeListEvent.SyncNow)
+            }.onFailure {
+                _events.emit(
+                    RecipeListEvent.Toast(
+                        it.message ?: "Failed to delete recipe"
+                    )
+                )
+            }
         }
     }
 

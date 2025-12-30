@@ -21,6 +21,7 @@ import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeViewModel
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeViewModel
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailViewModel
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListViewModel
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
@@ -103,8 +104,9 @@ fun AppRoot(container: AppContainer) {
                 arguments = listOf(navArgument("id") { type = NavType.LongType })
             ) { backStack ->
                 val id = backStack.arguments?.getLong("id") ?: return@composable
+                val vm = remember(id) { RecipeDetailViewModel(container, id) }
                 RecipeDetailScreen(
-                    container = container,
+                    vm = vm,
                     recipeId = id,
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate("${Routes.EDIT}/$id") }

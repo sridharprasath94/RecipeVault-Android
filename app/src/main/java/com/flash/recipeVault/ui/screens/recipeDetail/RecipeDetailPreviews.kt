@@ -82,7 +82,6 @@ private fun RecipeDetailTopBarPreview() {
         Scaffold(
             topBar = {
                 RecipeDetailTopBar(
-                    recipeId = 1L,
                     onBack = {},
                     onEdit = {},
                     onDelete = {},
