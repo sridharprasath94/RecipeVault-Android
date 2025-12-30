@@ -12,15 +12,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.flash.recipeVault.data.RecipeRepository
+import androidx.test.core.app.ApplicationProvider
+import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreenForTest(
-    repo: RecipeRepository
 ) {
-    val vm = remember { RecipeListViewModel(repo) }
+    val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+    val vm = remember { RecipeListViewModel(container = AppContainer(context)) }
     val recipes by vm.recipes.collectAsState()
 
     Scaffold(
@@ -28,7 +29,9 @@ fun RecipeListScreenForTest(
     ) { padding ->
         if (recipes.isEmpty()) {
             androidx.compose.foundation.layout.Box(
-                modifier = Modifier.padding(padding).fillMaxSize(),
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 Text("No recipes yet. Tap + to add one.")

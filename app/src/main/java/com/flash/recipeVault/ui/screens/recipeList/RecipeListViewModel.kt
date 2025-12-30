@@ -1,9 +1,10 @@
 package com.flash.recipeVault.ui.screens.recipeList
 
+import android.text.format.DateFormat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.flash.recipeVault.data.RecipeRepository
-import com.google.firebase.auth.FirebaseAuth
+import com.flash.recipeVault.data.RecipeEntity
+import com.flash.recipeVault.di.AppContainer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,35 +14,49 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class RecipeListRowUi(
+    val recipe: RecipeEntity,
+)
+
 data class RecipeListUiState(
+    val rows: List<RecipeListRowUi> = emptyList(),
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val deleteRecipeId: Long? = null,
     val isSyncing: Boolean = false,
     val isCloudSynced: Boolean = false,
+    val lastSyncedAt: Long = 0L,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
+    val syncLabel: String
+        get() = when {
+            isSyncing -> "Syncing…"
+            isCloudSynced -> "Cloud Synced"
+            else -> "Sync now"
+        }
+    val syncSupportingText: String
+        get() = if (lastSyncedAt > 0L) {
+            val dt = DateFormat.format("dd MMM, HH:mm", lastSyncedAt).toString()
+            "Last synced: $dt"
+        } else {
+            "Not synced yet"
+        }
 }
 
 sealed interface RecipeListEvent {
     object SyncNow : RecipeListEvent
     object BackupToDocument : RecipeListEvent
     object ShareBackup : RecipeListEvent
+    object PerformGoogleSignOut : RecipeListEvent
     object LoggedOut : RecipeListEvent
-
     data class Toast(val message: String) : RecipeListEvent
 }
 
-data class LastSyncedRead(
-    val lastSyncedAt: Long,
-    val shouldRemoveBadValue: Boolean
-)
-
 class RecipeListViewModel(
-    private val repo: RecipeRepository,
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance()
+    private val container: AppContainer,
 ) : ViewModel() {
 
+    private val repo = container.recipeRepositoryForCurrentUser()
     val recipes = repo.observeRecipes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -51,34 +66,55 @@ class RecipeListViewModel(
     private val _events = MutableSharedFlow<RecipeListEvent>(extraBufferCapacity = 1)
     val events = _events.asSharedFlow()
 
-    private val _lastSyncedAt = MutableStateFlow(0L)
-
     init {
-        // Whenever local data changes, recompute whether we are still in-sync with the last successful cloud sync.
         viewModelScope.launch {
-            recipes.collect {
-                recomputeCloudSynced()
+            recipes.collect { list ->
+                val rows = list.map {
+                    RecipeListRowUi(recipe = it)
+                }
+                _ui.update { it.copy(rows = rows) }
             }
         }
     }
 
-    private fun recomputeCloudSynced() {
-        val last = _lastSyncedAt.value
-        val list = recipes.value
-        // “Synced” means: nothing visible changed after the last successful sync.
-        val synced = list.all { it.updatedAt <= last }
-        _ui.update { it.copy(isCloudSynced = synced) }
+    fun syncNowWithCloud() {
+        _events.tryEmit(RecipeListEvent.SyncNow)
     }
 
-    fun openMenu() = _ui.update { it.copy(showMenu = true) }
-    fun dismissMenu() = _ui.update { it.copy(showMenu = false) }
+    fun backupClicked() {
+        onMenuDismiss(); _events.tryEmit(RecipeListEvent.BackupToDocument)
+    }
+
+    fun shareClicked() {
+        onMenuDismiss(); _events.tryEmit(RecipeListEvent.ShareBackup)
+    }
+
+    /** Restore persisted last successful sync timestamp (e.g., after app restart). */
+    fun restoreCloudStatus(isCloudSynced: Boolean, lastSyncedAt: Long) {
+        val validSynced = isCloudSynced && lastSyncedAt > 0L
+
+        _ui.update {
+            it.copy(
+                isCloudSynced = validSynced,
+                lastSyncedAt = lastSyncedAt
+            )
+        }
+    }
+
+    fun onMenuToggle() = _ui.update { it.copy(showMenu = !it.showMenu) }
+    fun onMenuDismiss() = _ui.update { it.copy(showMenu = false) }
+
 
     fun requestLogout() = _ui.update { it.copy(showMenu = false, showLogoutDialog = true) }
     fun dismissLogout() = _ui.update { it.copy(showLogoutDialog = false) }
 
     fun confirmLogout() {
         _ui.update { it.copy(showLogoutDialog = false, showMenu = false) }
-        auth.signOut()
+        _events.tryEmit(RecipeListEvent.PerformGoogleSignOut)
+    }
+
+    fun onGoogleSignOutCompleted() {
+        container.signOut()
         _events.tryEmit(RecipeListEvent.LoggedOut)
     }
 
@@ -94,49 +130,27 @@ class RecipeListViewModel(
         }
     }
 
-    fun syncNowClicked() {
-        dismissMenu()
-        _ui.update { it.copy(isSyncing = true) }
-        _events.tryEmit(RecipeListEvent.SyncNow)
-    }
+    fun requestSync(onSuccess: (Long) -> Unit, onFailure: (String) -> Unit) {
+        if (_ui.value.isSyncing) return
+        _ui.update { it.copy(isSyncing = true, showMenu = false) }
 
-    fun backupClicked() {
-        dismissMenu(); _events.tryEmit(RecipeListEvent.BackupToDocument)
-    }
-
-    fun shareClicked() {
-        dismissMenu(); _events.tryEmit(RecipeListEvent.ShareBackup)
-    }
-
-    fun onSyncSucceeded(lastSyncedAt: Long) {
-        _lastSyncedAt.value = lastSyncedAt
-        _ui.update { it.copy(isSyncing = false) }
-        recomputeCloudSynced()
-    }
-
-    fun onSyncFailed(message: String) {
-        _ui.update { it.copy(isSyncing = false) }
-        _events.tryEmit(RecipeListEvent.Toast(message))
-        // keep previous isCloudSynced; it reflects last successful sync vs local changes
-    }
-
-    /** Restore persisted last successful sync timestamp (e.g., after app restart). */
-    fun restoreLastSyncedAt(lastSyncedAt: Long) {
-        _lastSyncedAt.value = lastSyncedAt
-        _ui.update { it.copy(isSyncing = false) }
-        recomputeCloudSynced()
-    }
-
-
-    fun parseLastSyncedAt(any: Any?): LastSyncedRead {
-        val value = when (any) {
-            is Long -> any
-            is Int -> any.toLong()
-            is String -> any.toLongOrNull() ?: 0L
-            else -> 0L
+        viewModelScope.launch {
+            runCatching {
+                container.firestoreSyncServiceForCurrentUser().syncNow()
+            }.onSuccess {
+                val now = System.currentTimeMillis()
+                _ui.update { it.copy(isSyncing = false, isCloudSynced = true, lastSyncedAt = now) }
+                onSuccess(now)
+            }.onFailure { it ->
+                _ui.update { it.copy(isSyncing = false, isCloudSynced = false) }
+                val msg = it.message ?: "Sync failed"
+                _events.tryEmit(RecipeListEvent.Toast(msg))
+                onFailure(msg)
+            }
         }
+    }
 
-        val shouldRemove = any != null && any !is Long && any !is Int && any !is String
-        return LastSyncedRead(lastSyncedAt = value, shouldRemoveBadValue = shouldRemove)
+    suspend fun exportedJson(): String {
+        return repo.exportAllAsJson()
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.flash.recipeVault.ui.components.FormTopBar
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
@@ -36,11 +37,12 @@ private fun CreateRecipeTopBarIsSavingFalsePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
-                CreateRecipeTopBar(
+                FormTopBar (
                     title = "New Recipe",
-                    isSaving = false,
+                    actionLabel = "Save",
+                    isInteractionEnabled = false,
                     onBack = {},
-                    onSave = {},
+                    onPrimaryAction = {},
                 )
             }
         ) { padding ->
@@ -59,11 +61,12 @@ private fun CreateRecipeTopBarIsSavingTruePreview() {
     RecipeVaultTheme {
         Scaffold(
             topBar = {
-                CreateRecipeTopBar(
+                FormTopBar (
                     title = "New Recipe",
-                    isSaving = true,
+                    actionLabel = "Save",
+                    isInteractionEnabled = false,
                     onBack = {},
-                    onSave = {},
+                    onPrimaryAction = {},
                 )
             }
         ) { padding ->

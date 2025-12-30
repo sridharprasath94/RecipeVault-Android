@@ -7,98 +7,121 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.screens.auth.AuthScreen
 import com.flash.recipeVault.ui.screens.auth.AuthState
 import com.flash.recipeVault.ui.screens.auth.AuthViewModel
 import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeScreen
+import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeViewModel
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
+import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeViewModel
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
+import com.flash.recipeVault.ui.screens.recipeList.RecipeListViewModel
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 import com.google.firebase.firestore.ListenerRegistration
+
+object Routes {
+    const val AUTH = "auth"
+    const val LIST = "list"
+    const val CREATE = "create"
+    const val DETAIL = "detail"
+    const val EDIT = "edit"
+}
 
 @Composable
 fun AppRoot(container: AppContainer) {
     RecipeVaultTheme {
         val nav = rememberNavController()
         val authVm = remember { AuthViewModel() }
-        val state by authVm.state.collectAsState()
+        val authState by authVm.state.collectAsState()
 
-        val uid = (state as? AuthState.LoggedIn)?.uid
 
-        val realtimeRegState = remember { mutableStateOf<ListenerRegistration?>(null) }
+        LaunchedEffect(Unit) {
+            runCatching { container.seedDefaultSuggestionsIfEmpty() }
+        }
 
-        DisposableEffect(uid) {
-            if (uid != null) {
-                realtimeRegState.value =
-                    container.firestoreSyncServiceForCurrentUser().startRealtime()
-            }
-            onDispose {
-                realtimeRegState.value?.remove()
-                realtimeRegState.value = null
+        // Start/stop realtime sync while logged in
+        DisposableEffect(authState) {
+            val sync = runCatching { container.firestoreSyncServiceForCurrentUser() }.getOrNull()
+            if (authState is AuthState.LoggedIn && sync != null) {
+                sync.startRealtime()
+                onDispose { sync.stopRealTime() }
+            } else {
+                onDispose { }
             }
         }
 
-        LaunchedEffect(state) {
-            if (state is AuthState.LoggedIn) {
-                container.firestoreSyncServiceForCurrentUser().syncNow()
-                container.seedDefaultSuggestionsIfEmpty()
-            }
-        }
-
-        val start = if (state is AuthState.LoggedIn) "list" else "login"
-
-        NavHost(navController = nav, startDestination = start) {
-            composable("login") {
+        NavHost(
+            navController = nav,
+            startDestination = if (authState is AuthState.LoggedIn) Routes.LIST else Routes.AUTH
+        ) {
+            composable(Routes.AUTH) {
                 AuthScreen(
                     authVm = authVm,
-                    onLoggedIn = { nav.navigate("list") { popUpTo("login") { inclusive = true } } }
-                )
-            }
-
-            composable("list") {
-//                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
-                RecipeListScreen(
-                    container = container,
-                    onAdd = { nav.navigate("create") },
-                    onOpen = { id -> nav.navigate("detail/$id") },
-                    onLogout = {
-
-                        nav.navigate("login") { popUpTo("list") { inclusive = true } }
+                    onLoggedIn = {
+                        nav.navigate(Routes.LIST) {
+                            popUpTo(Routes.AUTH) {
+                                inclusive = true
+                            }
+                        }
                     }
                 )
             }
-            composable("create") {
+
+            composable(Routes.LIST) {
+//                LocalContext.current.deleteDatabase( "recipe_db_${(state as? AuthState.LoggedIn)?.uid}")
+                val vm = remember { RecipeListViewModel(container) }
+                RecipeListScreen(
+                    vm = vm,
+                    onAdd = { nav.navigate(Routes.CREATE) },
+                    onEdit = { id -> nav.navigate("${Routes.EDIT}/$id") },
+                    onOpen = { id -> nav.navigate("${Routes.DETAIL}/$id") },
+                    onLoggedOut = {
+                        nav.navigate(Routes.AUTH) { popUpTo(Routes.LIST) { inclusive = true } }
+                    }
+                )
+            }
+            composable(Routes.CREATE) {
+                val vm = remember { CreateRecipeViewModel(container) }
                 CreateRecipeScreen(
-                    container = container,
+                    vm = vm,
                     onBack = { nav.popBackStack() },
                     onCreated = { id ->
                         nav.popBackStack()
-                        nav.navigate("detail/$id")
+                        nav.navigate("${Routes.DETAIL}/$id")
                     }
                 )
             }
-            composable("edit/{id}") { backStack ->
-                val id = backStack.arguments?.getString("id")!!.toLong()
-                EditRecipeScreen(
-                    container = container,
-                    recipeId = id,
-                    onBack = { nav.popBackStack() }
-                )
-            }
-            composable("detail/{id}") { backStack ->
-                val id = backStack.arguments?.getString("id")!!.toLong()
+            composable(
+                route = "${Routes.DETAIL}/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.LongType })
+            ) { backStack ->
+                val id = backStack.arguments?.getLong("id") ?: return@composable
                 RecipeDetailScreen(
                     container = container,
                     recipeId = id,
                     onBack = { nav.popBackStack() },
-                    onEdit = { rid -> nav.navigate("edit/$rid") }
+                    onEdit = { nav.navigate("${Routes.EDIT}/$id") }
                 )
             }
+            composable(
+                route = "${Routes.EDIT}/{id}",
+                arguments = listOf(navArgument("id") { type = NavType.LongType })
+            ) { backStack ->
+                val id = backStack.arguments?.getLong("id") ?: return@composable
+                val vm = remember(id) { EditRecipeViewModel(container, id) }
+                EditRecipeScreen(
+                    vm = vm,
+                    onBack = { nav.popBackStack() }
+                )
+            }
+
         }
     }
 }

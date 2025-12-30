@@ -4,6 +4,7 @@ package com.flash.recipeVault.ui.screens.recipeList
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,11 +22,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudUpload
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,73 +39,87 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.flash.recipeVault.R
-import com.flash.recipeVault.data.RecipeEntity
-import com.flash.recipeVault.di.AppContainer
+import androidx.core.content.edit
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions.Builder
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions.DEFAULT_SIGN_IN
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
-import androidx.core.content.edit
+
+
+private const val cloudSyncedStatusKey = "cloud_synced"
+
+private const val cloudLastSyncedTimeKey = "cloud_last_synced_at"
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeListScreen(
-    container: AppContainer,
+    vm: RecipeListViewModel,
     onAdd: () -> Unit,
     onOpen: (Long) -> Unit,
-    onLogout: () -> Unit
+    onEdit: (Long) -> Unit,
+    onLoggedOut: () -> Unit
 ) {
-    val repo = remember { container.recipeRepositoryForCurrentUser() }
-    val vm = remember { RecipeListViewModel(repo) }
-    val recipes by vm.recipes.collectAsState()
-    val ui by vm.ui.collectAsState()
     val context = LocalContext.current
+    val ui by vm.ui.collectAsState()
+    val uid = remember {
+        FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous"
+    }
     val scope = rememberCoroutineScope()
-    val uid = remember { FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous" }
-    val syncPrefs = remember(uid) {
+    val prefs = remember(uid) {
         context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
     }
-    val prefsKey = remember { "last_synced_at" }
 
-    LaunchedEffect(uid) {
-        val parsed = vm.parseLastSyncedAt(syncPrefs.all[prefsKey])
-        if (parsed.shouldRemoveBadValue) {
-            syncPrefs.edit { remove(prefsKey) }
-        }
-        vm.restoreLastSyncedAt(parsed.lastSyncedAt)
+    var didAutoSync by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        val synced = prefs.getBoolean(cloudSyncedStatusKey, false)
+        val last = prefs.getLong(cloudLastSyncedTimeKey, 0L)
+        vm.restoreCloudStatus(synced, last)
     }
 
-    // Requires a real google-services.json to generate R.string.default_web_client_id
-    val webClientId = stringResource(R.string.default_web_client_id)
-    val googleClient = remember(webClientId) {
-        GoogleSignIn.getClient(
-            context,
-            Builder(DEFAULT_SIGN_IN)
-                .requestEmail()
-                .apply { if (webClientId.isNotBlank()) requestIdToken(webClientId) }
-                .build()
+    LaunchedEffect(ui.rows, ui.lastSyncedAt) {
+        if (ui.lastSyncedAt <= 0L) return@LaunchedEffect
+        val hasLocalNewer = ui.rows.any { it.recipe.updatedAt > ui.lastSyncedAt }
+        if (hasLocalNewer && ui.isCloudSynced) {
+            prefs.edit { putBoolean(cloudSyncedStatusKey, false) }
+            vm.restoreCloudStatus(isCloudSynced = false, lastSyncedAt = ui.lastSyncedAt)
+        }
+    }
+
+    LaunchedEffect(ui.isCloudSynced, ui.lastSyncedAt, ui.rows) {
+        if (didAutoSync) return@LaunchedEffect
+
+        val shouldAutoSync =
+            !ui.isCloudSynced && ui.lastSyncedAt == 0L && ui.rows.isNotEmpty()
+
+        Log.d(
+            "RecipeListScreen", "Auto-sync check: shouldAutoSync=$shouldAutoSync" +
+                    " isCloudSynced=${ui.isCloudSynced} lastSyncedAt=${ui.lastSyncedAt} " +
+                    "rowsCount=${ui.rows.size}"
         )
+        if (shouldAutoSync) {
+            didAutoSync = true
+            vm.syncNowWithCloud()
+        }
     }
 
     // Save JSON to any document provider. If Google Drive is installed, choose Drive here.
@@ -112,9 +128,8 @@ fun RecipeListScreen(
         onResult = { uri ->
             if (uri != null) {
                 scope.launch {
-                    val json = repo.exportAllAsJson()
                     context.contentResolver.openOutputStream(uri)?.use { os ->
-                        os.write(json.toByteArray(Charsets.UTF_8))
+                        os.write(vm.exportedJson().toByteArray(Charsets.UTF_8))
                     }
                 }
             }
@@ -124,15 +139,25 @@ fun RecipeListScreen(
     LaunchedEffect(Unit) {
         vm.events.collectLatest { event ->
             when (event) {
+                is RecipeListEvent.Toast -> Toast.makeText(
+                    context,
+                    event.message,
+                    Toast.LENGTH_LONG
+                ).show()
+
                 RecipeListEvent.SyncNow -> {
-                    runCatching {
-                        container.firestoreSyncServiceForCurrentUser().syncNow()
-                    }.onSuccess {
-                        val now = System.currentTimeMillis()
-                        syncPrefs.edit { putLong(prefsKey, now) }
-                        vm.onSyncSucceeded(now)
-                    }.onFailure {
-                        vm.onSyncFailed(it.message ?: "Sync failed")
+                    if (!ui.isSyncing) {
+                        vm.requestSync(
+                            onSuccess = { now ->
+                                prefs.edit {
+                                    putBoolean(cloudSyncedStatusKey, true)
+                                        .putLong(cloudLastSyncedTimeKey, now)
+                                }
+                            },
+                            onFailure = {
+                                prefs.edit { putBoolean(cloudSyncedStatusKey, false) }
+                            }
+                        )
                     }
                 }
 
@@ -142,12 +167,11 @@ fun RecipeListScreen(
 
                 RecipeListEvent.ShareBackup -> {
                     scope.launch {
-                        val json = repo.exportAllAsJson()
                         val file = File(
                             context.cacheDir,
                             "recipes_share_${System.currentTimeMillis()}.json"
                         )
-                        file.writeText(json, Charsets.UTF_8)
+                        file.writeText(vm.exportedJson(), Charsets.UTF_8)
                         val uri = FileProvider.getUriForFile(
                             context,
                             context.packageName + ".fileprovider",
@@ -162,18 +186,21 @@ fun RecipeListScreen(
                     }
                 }
 
-                RecipeListEvent.LoggedOut -> {
-                    container.signOut()
-                    googleClient.signOut()
-                    onLogout()
+                RecipeListEvent.PerformGoogleSignOut -> {
+                    val googleClient =
+                        GoogleSignIn.getClient(
+                            context, GoogleSignInOptions.Builder(
+                                GoogleSignInOptions.DEFAULT_SIGN_IN
+                            )
+                                .requestEmail()
+                                .build()
+                        )
+                    googleClient.signOut().addOnCompleteListener {
+                        vm.onGoogleSignOutCompleted()
+                    }
                 }
 
-                is RecipeListEvent.Toast -> Toast.makeText(
-                    context,
-                    event.message,
-                    Toast.LENGTH_LONG
-                )
-                    .show()
+                RecipeListEvent.LoggedOut -> onLoggedOut()
             }
         }
     }
@@ -181,9 +208,7 @@ fun RecipeListScreen(
     RecipeListDialogs(
         showLogoutDialog = ui.showLogoutDialog,
         onDismissLogout = vm::dismissLogout,
-        onConfirmLogout = {
-            vm.confirmLogout()
-        },
+        onConfirmLogout = vm::confirmLogout,
         showDeleteDialog = ui.showDeleteDialog,
         onDismissDelete = vm::dismissDelete,
         onConfirmDelete = vm::confirmDelete,
@@ -191,16 +216,59 @@ fun RecipeListScreen(
 
     Scaffold(
         topBar = {
-            RecipeListTopBar(
-                showMenu = ui.showMenu,
-                isCloudSynced = ui.isCloudSynced,
-                isSyncing = ui.isSyncing,
-                onOpenMenu = vm::openMenu,
-                onDismissMenu = vm::dismissMenu,
-                onSyncWithCloud = vm::syncNowClicked,
-                onBackup = vm::backupClicked,
-                onShare = vm::shareClicked,
-                onLogoutClick = vm::requestLogout,
+            TopAppBar(
+                title = { Text("Recipes") },
+                actions = {
+                    IconButton(onClick = vm::onMenuToggle) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    }
+
+                    DropdownMenu(
+                        expanded = ui.showMenu,
+                        onDismissRequest = vm::onMenuDismiss
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Column {
+                                    Text(ui.syncLabel)
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        ui.syncSupportingText,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            },
+                            onClick = vm::syncNowWithCloud,
+                            trailingIcon = {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    SyncStatusIcon(
+                                        isSyncing = ui.isSyncing,
+                                        isCloudSynced = ui.isCloudSynced,
+                                    )
+                                }
+                            }
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Backup") },
+                            onClick = vm::backupClicked
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            onClick = vm::shareClicked
+                        )
+
+                        DropdownMenuItem(
+                            text = { Text("Log out") },
+                            onClick = vm::requestLogout
+                        )
+                    }
+                }
             )
         },
         floatingActionButton = {
@@ -211,107 +279,54 @@ fun RecipeListScreen(
     ) { padding ->
         RecipeListBody(
             padding = padding,
-            recipes = recipes,
+            rows = ui.rows,
             onOpen = onOpen,
+            onEdit = onEdit,
             onDeleteClick = { id -> vm.requestDelete(id) }
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeListTopBar(
-    showMenu: Boolean,
-    isCloudSynced: Boolean,
+fun SyncStatusIcon(
     isSyncing: Boolean,
-    onOpenMenu: () -> Unit,
-    onDismissMenu: () -> Unit,
-    onSyncWithCloud: () -> Unit,
-    onBackup: () -> Unit,
-    onShare: () -> Unit,
-    onLogoutClick: () -> Unit,
+    isCloudSynced: Boolean,
 ) {
-    TopAppBar(
-        title = { Text("Recipes") },
-        actions = {
-            IconButton(onClick = onOpenMenu) {
-                Icon(Icons.Default.MoreVert, contentDescription = "Menu")
-            }
-
-            DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = onDismissMenu
-            ) {
-                DropdownMenuItem(
-                    text = {
-                        val label = when {
-                            isSyncing -> "Syncing with Cloud…"
-                            isCloudSynced -> "Cloud Synced"
-                            else -> "Sync with Cloud"
-                        }
-                        Text(label)
-                    },
-                    onClick = onSyncWithCloud,
-                    trailingIcon = {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            tonalElevation = 1.dp
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .padding(horizontal = 6.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                when {
-                                    isSyncing -> {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(14.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                    }
-
-                                    isCloudSynced -> {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = "Synced",
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                )
-
-                DropdownMenuItem(
-                    text = { Text("Backup") },
-                    onClick = onBackup
-                )
-
-                DropdownMenuItem(
-                    text = { Text("Share") },
-                    onClick = onShare
-                )
-
-                DropdownMenuItem(
-                    text = { Text("Log out") },
-                    onClick = onLogoutClick
-                )
-            }
+    when {
+        isSyncing -> {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 2.dp
+            )
         }
-    )
+
+        isCloudSynced -> {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = "Synced",
+                modifier = Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        else -> {
+            Icon(
+                imageVector = Icons.Default.CloudUpload,
+                contentDescription = "Not synced"
+            )
+        }
+    }
 }
 
 @Composable
 fun RecipeListBody(
     padding: PaddingValues,
-    recipes: List<RecipeEntity>,
+    rows: List<RecipeListRowUi>,
     onOpen: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
     onDeleteClick: (Long) -> Unit,
 ) {
-    if (recipes.isEmpty()) {
+    if (rows.isEmpty()) {
         Box(
             Modifier
                 .padding(padding)
@@ -323,8 +338,9 @@ fun RecipeListBody(
     } else {
         RecipeList(
             padding = padding,
-            recipes = recipes,
+            rows = rows,
             onOpen = onOpen,
+            onEdit = onEdit,
             onDeleteClick = onDeleteClick,
         )
     }
@@ -333,8 +349,9 @@ fun RecipeListBody(
 @Composable
 fun RecipeList(
     padding: PaddingValues,
-    recipes: List<RecipeEntity>,
+    rows: List<RecipeListRowUi>,
     onOpen: (Long) -> Unit,
+    onEdit: (Long) -> Unit,
     onDeleteClick: (Long) -> Unit,
 ) {
     LazyColumn(
@@ -344,11 +361,12 @@ fun RecipeList(
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(recipes) { recipe ->
+        items(rows) { row ->
             RecipeListItem(
-                recipe = recipe,
-                onOpen = { onOpen(recipe.id) },
-                onDeleteClick = { onDeleteClick(recipe.id) },
+                row = row,
+                onOpen = { onOpen(row.recipe.id) },
+                onEdit = { onEdit(row.recipe.id) },
+                onDeleteClick = { onDeleteClick(row.recipe.id) },
             )
         }
     }
@@ -356,8 +374,9 @@ fun RecipeList(
 
 @Composable
 fun RecipeListItem(
-    recipe: RecipeEntity,
+    row: RecipeListRowUi,
     onOpen: () -> Unit,
+    onEdit: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
     Card(Modifier.fillMaxWidth()) {
@@ -369,22 +388,35 @@ fun RecipeListItem(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+
             Column(
                 Modifier
                     .weight(1f)
             ) {
-                Text(recipe.title, style = MaterialTheme.typography.titleMedium)
-                if (!recipe.description.isNullOrBlank()) {
+                Text(row.recipe.title, style = MaterialTheme.typography.titleMedium)
+                if (!row.recipe.description.isNullOrBlank()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
+                    Text(row.recipe.description, style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
-            recipe.imageUrl?.let { url ->
-                RecipeAsyncImage(url)
+
+            row.recipe.imageUrl?.let { url ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                ) {
+                    RecipeAsyncImage(url)
+                }
             }
 
-            IconButton(onClick = onDeleteClick) {
+
+            IconButton(modifier = Modifier.weight(0.4f), onClick = onEdit) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            }
+
+
+            IconButton(modifier = Modifier.weight(0.4f), onClick = onDeleteClick) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")
             }
         }
