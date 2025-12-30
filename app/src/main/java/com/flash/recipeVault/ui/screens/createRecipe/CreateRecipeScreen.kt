@@ -72,6 +72,7 @@ fun CreateRecipeScreen(
         vm.events.collectLatest { event ->
             when (event) {
                 is CreateRecipeEvent.Toast -> {
+                    if (isFinishing) return@collectLatest
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }
 

@@ -150,6 +150,7 @@ class CreateRecipeViewModel(
 
     fun save() {
         if(_ui.value.isSaving) return
+        _ui.update { it.copy(isSaving = true) }
         val state = _ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim().ifEmpty { null }
@@ -174,8 +175,6 @@ class CreateRecipeViewModel(
 
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(isSaving = true) }
-
                 val id = recipeRepository.createRecipe(
                     title = cleanTitle,
                     description = cleanDesc,
@@ -185,7 +184,6 @@ class CreateRecipeViewModel(
                     steps = cleanSteps
                 )
 
-                // persist user-entered suggestions (dedup handled by repo)
                 suggestionsRepo.addFromTriples(
                     type = SuggestionType.INGREDIENT,
                     values = cleanIngredients.map { it.first }

@@ -200,11 +200,11 @@ class EditRecipeViewModel(
 
     fun save() {
         if(_ui.value.isSaving) return
+        _ui.update { it.copy(isSaving = true) }
         val state = ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim()
 
-        // Normalize inputs (trim + drop empty rows)
         val cleanIngredients = state.ingredients
             .map { (n, q, u) ->
                 Triple(
@@ -225,8 +225,6 @@ class EditRecipeViewModel(
 
         viewModelScope.launch {
             try {
-                _ui.update { it.copy(isSaving = true) }
-
                 recipeRepository.updateRecipe(
                     recipeId,
                     title = cleanTitle,
