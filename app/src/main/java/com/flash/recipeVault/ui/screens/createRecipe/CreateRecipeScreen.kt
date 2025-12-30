@@ -66,6 +66,8 @@ fun CreateRecipeScreen(
                     isFinishing = true
                     onCreated(event.id)
                 }
+
+                CreateRecipeEvent.OnBackClicked -> onBack()
             }
         }
     }
@@ -74,7 +76,7 @@ fun CreateRecipeScreen(
         ui = ui,
         suggestions = suggestions,
         isFinishing = isFinishing,
-        onBack = onBack,
+        onBack = vm::requestBack,
         onSave = {
             keyboardController?.hide()
             vm.save()

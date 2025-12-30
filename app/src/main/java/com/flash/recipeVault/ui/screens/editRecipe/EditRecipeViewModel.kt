@@ -7,6 +7,7 @@ import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
+import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeEvent
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 
 sealed interface EditRecipeEvent {
     data class Toast(val message: String) : EditRecipeEvent
+    object OnBackClicked : EditRecipeEvent
     object OnFinishedSaving : EditRecipeEvent
 }
 
@@ -178,6 +180,7 @@ class EditRecipeViewModel(
         }
     }
 
+    fun requestBack() = _events.tryEmit(EditRecipeEvent.OnBackClicked)
 
     private fun validate(
         title: String,

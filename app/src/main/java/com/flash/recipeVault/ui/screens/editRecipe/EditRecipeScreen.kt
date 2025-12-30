@@ -65,6 +65,8 @@ fun EditRecipeScreen(
                     isFinishing = true
                     onBack()
                 }
+
+                EditRecipeEvent.OnBackClicked -> onBack()
             }
         }
     }
@@ -73,7 +75,7 @@ fun EditRecipeScreen(
         ui = ui,
         suggestions = suggestions,
         isFinishing = isFinishing,
-        onBack = onBack,
+        onBack = vm::requestBack,
         onSave = {
             keyboardController?.hide()
             vm.save()

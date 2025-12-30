@@ -75,8 +75,8 @@ private const val cloudLastSyncedTimeKey = "cloud_last_synced_at"
 fun RecipeListScreen(
     vm: RecipeListViewModel,
     onAdd: () -> Unit,
-    onOpen: (Long) -> Unit,
-    onEdit: (Long) -> Unit,
+    onOpenRecipe: (Long) -> Unit,
+    onEditRecipe: (Long) -> Unit,
     onLoggedOut: () -> Unit
 ) {
     val context = LocalContext.current
@@ -144,6 +144,10 @@ fun RecipeListScreen(
                     event.message,
                     Toast.LENGTH_LONG
                 ).show()
+
+                is RecipeListEvent.OnEditRecipe -> onEditRecipe(event.recipeId)
+
+                is RecipeListEvent.OnOpenRecipe -> onOpenRecipe(event.recipeId)
 
                 RecipeListEvent.SyncNow -> {
                     if (!ui.isSyncing) {
@@ -280,9 +284,9 @@ fun RecipeListScreen(
         RecipeListBody(
             padding = padding,
             rows = ui.rows,
-            onOpen = onOpen,
-            onEdit = onEdit,
-            onDeleteClick = { id -> vm.requestDelete(id) }
+            onOpen = vm::requestOpenRecipe,
+            onEdit = vm::requestEditRecipe,
+            onDeleteClick = vm::requestDelete
         )
     }
 }

@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
-import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +49,8 @@ sealed interface RecipeListEvent {
     object ShareBackup : RecipeListEvent
     object PerformGoogleSignOut : RecipeListEvent
     object LoggedOut : RecipeListEvent
+    data class OnOpenRecipe(val recipeId: Long): RecipeListEvent
+    data class OnEditRecipe(val recipeId: Long) : RecipeListEvent
     data class Toast(val message: String) : RecipeListEvent
 }
 
@@ -78,6 +79,13 @@ class RecipeListViewModel(
         }
     }
 
+    fun requestEditRecipe(recipeId: Long){
+        _events.tryEmit(RecipeListEvent.OnEditRecipe(recipeId))
+    }
+
+    fun requestOpenRecipe(recipeId: Long){
+        _events.tryEmit(RecipeListEvent.OnOpenRecipe(recipeId))
+    }
     fun syncNowWithCloud() {
         _events.tryEmit(RecipeListEvent.SyncNow)
     }
@@ -121,7 +129,6 @@ class RecipeListViewModel(
 
     fun requestDelete(id: Long) = _ui.update { it.copy(deleteRecipeId = id) }
     fun dismissDelete() = _ui.update { it.copy(deleteRecipeId = null) }
-
 
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return

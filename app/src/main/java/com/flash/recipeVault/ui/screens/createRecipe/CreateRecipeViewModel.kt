@@ -6,6 +6,7 @@ import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailEvent
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,8 @@ import kotlinx.coroutines.launch
 
 sealed interface CreateRecipeEvent {
     data class Toast(val message: String) : CreateRecipeEvent
-    data class  OnFinishedSaving(val id: Long) : CreateRecipeEvent
+    object OnBackClicked : CreateRecipeEvent
+    data class OnFinishedSaving(val id: Long) : CreateRecipeEvent
 }
 
 data class CreateRecipeUiState(
@@ -102,7 +104,9 @@ class CreateRecipeViewModel(
     fun onIngredientRemoved(index: Int) {
         _ui.update { state ->
             val list = state.ingredients.toMutableList()
-            if (list.size <= 1) { return@update state.copy(ingredients = listOf(IngredientFormRow())) }
+            if (list.size <= 1) {
+                return@update state.copy(ingredients = listOf(IngredientFormRow()))
+            }
             if (index in list.indices) list.removeAt(index)
             state.copy(ingredients = list)
         }
@@ -123,11 +127,15 @@ class CreateRecipeViewModel(
     fun onStepRemoved(index: Int) {
         _ui.update { state ->
             val list = state.steps.toMutableList()
-            if (list.size <= 1) { return@update state.copy(steps = listOf("")) }
+            if (list.size <= 1) {
+                return@update state.copy(steps = listOf(""))
+            }
             if (index in list.indices) list.removeAt(index)
             state.copy(steps = list)
         }
     }
+
+    fun requestBack() = _events.tryEmit(CreateRecipeEvent.OnBackClicked)
 
     private fun validate(
         title: String,
@@ -171,7 +179,7 @@ class CreateRecipeViewModel(
             return
         }
 
-       if(_ui.value.isSaving) return
+        if (_ui.value.isSaving) return
         viewModelScope.launch {
             try {
                 _ui.update { it.copy(isSaving = true) }
