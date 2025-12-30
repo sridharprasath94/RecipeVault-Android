@@ -50,7 +50,6 @@ fun EditRecipeScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-
     var isFinishing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -141,7 +140,6 @@ fun EditRecipeContent(
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
-
             RecipeForm(
                 padding = padding,
                 isLoading = ui.isLoadingData,
