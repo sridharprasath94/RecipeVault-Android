@@ -232,14 +232,14 @@ fun RecipeListScreen(
         onDismissDelete = vm::dismissDelete,
         onConfirmDelete = vm::confirmDelete,
     )
-
+    val isInteractionEnabled = !ui.isLoadingData && !ui.isNavigating
     Scaffold(
         topBar = {
             Box {
                 TopAppBar(
                     title = { Text("Recipes") },
                     actions = {
-                        if (!ui.isNavigating) {
+                        if (isInteractionEnabled) {
                             IconButton(onClick = vm::onMenuToggle) {
                                 Icon(Icons.Default.MoreVert, contentDescription = "Menu")
                             }
@@ -290,12 +290,11 @@ fun RecipeListScreen(
                                 )
                             }
                         }
-
                     }
 
                 )
 
-                if (ui.isNavigating) {
+                if (!isInteractionEnabled) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
@@ -305,7 +304,7 @@ fun RecipeListScreen(
             }
         },
         floatingActionButton = {
-            if (!ui.isNavigating) {
+            if (isInteractionEnabled) {
                 FloatingActionButton(onClick = onAdd) {
                     Icon(Icons.Default.Add, contentDescription = "Add")
                 }
@@ -322,7 +321,7 @@ fun RecipeListScreen(
                 onDeleteClick = vm::requestDelete
             )
 
-            if (ui.isNavigating) {
+            if (!isInteractionEnabled) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

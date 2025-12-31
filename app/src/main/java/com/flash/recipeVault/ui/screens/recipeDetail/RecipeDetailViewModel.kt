@@ -5,13 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeWithDetails
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
-import com.flash.recipeVault.ui.screens.recipeList.RecipeListEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -48,9 +48,9 @@ class RecipeDetailViewModel(
     val events = _events.asSharedFlow()
 
     init {
-        _ui.update { it.copy(isLoadingData = true) }
         viewModelScope.launch {
             val recipe = repo.observeRecipe(recipeId)
+                .onStart { _ui.update { it.copy(isLoadingData = true) } }
                 .filterNotNull()
                 .first()
             _ui.value = mapRecipeToUi(recipe).copy(isLoadingData = false)

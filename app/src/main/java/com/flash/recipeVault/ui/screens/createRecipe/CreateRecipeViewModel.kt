@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -33,6 +35,7 @@ data class CreateRecipeUiState(
     val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
+    val suggestions: SuggestionsUi = SuggestionsUi(),
     val isSaving: Boolean = false,
     val isNavigating: Boolean = false,
 )
@@ -40,7 +43,6 @@ data class CreateRecipeUiState(
 class CreateRecipeViewModel(
     container: AppContainer,
 ) : ViewModel() {
-
     private val recipeRepository = container.recipeRepositoryForCurrentUser()
     private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
     private val _ui = MutableStateFlow(CreateRecipeUiState())
@@ -52,22 +54,24 @@ class CreateRecipeViewModel(
     )
     val events: SharedFlow<CreateRecipeEvent> = _events.asSharedFlow()
 
-    val suggestions: StateFlow<SuggestionsUi> =
-        combine(
-            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
-            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
-            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
-        ) { ing, unit, step ->
-            SuggestionsUi(
-                ingredients = ing,
-                units = unit,
-                steps = step
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SuggestionsUi()
-        )
+    init {
+        // Observe suggestions
+        viewModelScope.launch {
+            combine(
+                suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+                suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+                suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+            ) { ing, unit, step ->
+                SuggestionsUi(
+                    ingredients = ing,
+                    units = unit,
+                    steps = step
+                )
+            }.collect { suggestions ->
+                _ui.update { it.copy(suggestions = suggestions) }
+            }
+        }
+    }
 
     fun updateTitle(value: String) {
         _ui.update { it.copy(title = value) }

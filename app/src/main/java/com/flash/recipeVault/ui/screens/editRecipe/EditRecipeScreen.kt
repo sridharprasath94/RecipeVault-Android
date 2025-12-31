@@ -39,7 +39,6 @@ fun EditRecipeScreen(
     vm: EditRecipeViewModel,
     onBack: () -> Unit
 ) {
-    val suggestions by vm.suggestions.collectAsState()
     val ui by vm.ui.collectAsState()
     val context = LocalContext.current
 
@@ -79,7 +78,7 @@ fun EditRecipeScreen(
 
     EditRecipeContent(
         ui = ui,
-        suggestions = suggestions,
+        suggestions = ui.suggestions,
         isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onSave = {

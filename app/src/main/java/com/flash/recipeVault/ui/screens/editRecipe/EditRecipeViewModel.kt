@@ -7,8 +7,6 @@ import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
-import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeEvent
-import com.flash.recipeVault.ui.screens.recipeList.RecipeListEvent
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,6 +34,7 @@ data class EditRecipeUiState(
     val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
+    val suggestions: SuggestionsUi = SuggestionsUi(),
     val isLoadingData: Boolean = false,
     val isSaving: Boolean = false,
     val isNavigating: Boolean = false,
@@ -59,32 +58,37 @@ class EditRecipeViewModel(
     )
     val events: SharedFlow<EditRecipeEvent> = _events.asSharedFlow()
 
-    val suggestions: StateFlow<SuggestionsUi> =
-        combine(
-            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
-            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
-            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
-        ) { ing, unit, step ->
-            SuggestionsUi(
-                ingredients = ing,
-                units = unit,
-                steps = step
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SuggestionsUi()
-        )
-
-
     init {
-        _ui.update { it.copy(isLoadingData = true) }
+        // Observe recipe
         viewModelScope.launch {
-            val recipe = recipeRepository.observeRecipe(recipeId)
+            recipeRepository.observeRecipe(recipeId)
+                .onStart { _ui.update { it.copy(isLoadingData = true) } }
                 .filterNotNull()
-                .first()
+                .collect { recipe ->
+                    _ui.update {
+                        mapRecipeToUi(recipe).copy(
+                            suggestions = it.suggestions, // preserve suggestions
+                            isLoadingData = false
+                        )
+                    }
+                }
+        }
 
-            _ui.value = mapRecipeToUi(recipe).copy(isLoadingData = false)
+        // Observe suggestions
+        viewModelScope.launch {
+            combine(
+                suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+                suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+                suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+            ) { ing, unit, step ->
+                SuggestionsUi(
+                    ingredients = ing,
+                    units = unit,
+                    steps = step
+                )
+            }.collect { suggestions ->
+                _ui.update { it.copy(suggestions = suggestions) }
+            }
         }
     }
 

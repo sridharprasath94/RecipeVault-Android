@@ -7,10 +7,9 @@ import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -22,6 +21,7 @@ data class RecipeListUiState(
     val isSyncing: Boolean = false,
     val isCloudSynced: Boolean = false,
     val lastSyncedAt: Long = 0L,
+    val isLoadingData: Boolean = false,
     val isNavigating: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
@@ -56,8 +56,6 @@ class RecipeListViewModel(
 ) : ViewModel() {
 
     private val repo = container.recipeRepositoryForCurrentUser()
-    val recipes = repo.observeRecipes()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _ui = MutableStateFlow(RecipeListUiState())
     val ui: StateFlow<RecipeListUiState> = _ui
@@ -67,13 +65,16 @@ class RecipeListViewModel(
 
     init {
         viewModelScope.launch {
-            recipes.collect { list ->
-                _ui.update { it.copy(recipes = list) }
-//                val rows = list.map {
-//                    _ui.update { it.copy(recipes = list) }
-//                }
-//                _ui.update { it.copy(recipes = rows) }
-            }
+            repo.observeRecipes()
+                .onStart { _ui.update { it.copy(isLoadingData = true) } }
+                .collect { list ->
+                    _ui.update {
+                        it.copy(
+                            recipes = list,
+                            isLoadingData = false
+                        )
+                    }
+                }
         }
     }
 
