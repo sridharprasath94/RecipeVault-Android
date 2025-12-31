@@ -53,9 +53,7 @@ class AuthViewModel(
     val ui: StateFlow<AuthFormUiState> = _ui
 
     private val _events = MutableSharedFlow<AuthEvent>(
-        replay = 0,
         extraBufferCapacity = 1,
-        onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
 
@@ -214,7 +212,7 @@ class AuthViewModel(
 
     private fun emitIfAllowed(event: AuthEvent) {
         if (!_ui.value.isNavigating) {
-            emitIfAllowed(event)
+            _events.tryEmit(event)
         }
     }
 }

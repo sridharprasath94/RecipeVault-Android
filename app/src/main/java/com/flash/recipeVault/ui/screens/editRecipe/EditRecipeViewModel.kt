@@ -281,7 +281,7 @@ class EditRecipeViewModel(
 
     private fun emitIfAllowed(event: EditRecipeEvent) {
         if (!_ui.value.isNavigating) {
-            emitIfAllowed(event)
+            _events.tryEmit(event)
         }
     }
 }

@@ -121,7 +121,7 @@ class RecipeDetailViewModel(
 
     private fun emitIfAllowed(event: RecipeDetailEvent) {
         if (!_ui.value.isNavigating) {
-            emitIfAllowed(event)
+            _events.tryEmit(event)
         }
     }
 }
