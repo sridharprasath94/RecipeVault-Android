@@ -14,12 +14,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class RecipeListRowUi(
-    val recipe: RecipeEntity,
-)
-
 data class RecipeListUiState(
-    val rows: List<RecipeListRowUi> = emptyList(),
+    val recipes: List<RecipeEntity> = emptyList(),
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val deleteRecipeId: Long? = null,
@@ -72,10 +68,11 @@ class RecipeListViewModel(
     init {
         viewModelScope.launch {
             recipes.collect { list ->
-                val rows = list.map {
-                    RecipeListRowUi(recipe = it)
-                }
-                _ui.update { it.copy(rows = rows) }
+                _ui.update { it.copy(recipes = list) }
+//                val rows = list.map {
+//                    _ui.update { it.copy(recipes = list) }
+//                }
+//                _ui.update { it.copy(recipes = rows) }
             }
         }
     }

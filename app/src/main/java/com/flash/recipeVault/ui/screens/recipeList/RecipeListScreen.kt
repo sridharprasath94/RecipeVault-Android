@@ -60,6 +60,7 @@ import androidx.core.content.edit
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
+import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -108,20 +109,20 @@ fun RecipeListScreen(
         vm.restoreCloudStatus(synced, last)
     }
 
-    LaunchedEffect(ui.rows, ui.lastSyncedAt) {
+    LaunchedEffect(ui.recipes, ui.lastSyncedAt) {
         if (ui.lastSyncedAt <= 0L) return@LaunchedEffect
-        val hasLocalNewer = ui.rows.any { it.recipe.updatedAt > ui.lastSyncedAt }
+        val hasLocalNewer = ui.recipes.any { it.updatedAt > ui.lastSyncedAt }
         if (hasLocalNewer && ui.isCloudSynced) {
             prefs.edit { putBoolean(cloudSyncedStatusKey, false) }
             vm.restoreCloudStatus(isCloudSynced = false, lastSyncedAt = ui.lastSyncedAt)
         }
     }
 
-    LaunchedEffect(ui.isCloudSynced, ui.lastSyncedAt, ui.rows) {
+    LaunchedEffect(ui.isCloudSynced, ui.lastSyncedAt, ui.recipes) {
         if (didAutoSync) return@LaunchedEffect
 
         val shouldAutoSync =
-            !ui.isCloudSynced && ui.lastSyncedAt == 0L && ui.rows.isNotEmpty()
+            !ui.isCloudSynced && ui.lastSyncedAt == 0L && ui.recipes.isNotEmpty()
 
         if (shouldAutoSync) {
             didAutoSync = true
@@ -315,7 +316,7 @@ fun RecipeListScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             RecipeListBody(
                 padding = padding,
-                rows = ui.rows,
+                recipes = ui.recipes,
                 onOpen = vm::requestOpenRecipe,
                 onEdit = vm::requestEditRecipe,
                 onDeleteClick = vm::requestDelete
@@ -368,12 +369,12 @@ fun SyncStatusIcon(
 @Composable
 fun RecipeListBody(
     padding: PaddingValues,
-    rows: List<RecipeListRowUi>,
+    recipes: List<RecipeEntity>,
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onDeleteClick: (Long) -> Unit,
 ) {
-    if (rows.isEmpty()) {
+    if (recipes.isEmpty()) {
         Box(
             Modifier
                 .padding(padding)
@@ -385,7 +386,7 @@ fun RecipeListBody(
     } else {
         RecipeList(
             padding = padding,
-            rows = rows,
+            recipes = recipes,
             onOpen = onOpen,
             onEdit = onEdit,
             onDeleteClick = onDeleteClick,
@@ -396,7 +397,7 @@ fun RecipeListBody(
 @Composable
 fun RecipeList(
     padding: PaddingValues,
-    rows: List<RecipeListRowUi>,
+    recipes: List<RecipeEntity>,
     onOpen: (Long) -> Unit,
     onEdit: (Long) -> Unit,
     onDeleteClick: (Long) -> Unit,
@@ -408,12 +409,12 @@ fun RecipeList(
         contentPadding = PaddingValues(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        items(rows) { row ->
+        items(recipes) { recipe ->
             RecipeListItem(
-                row = row,
-                onOpen = { onOpen(row.recipe.id) },
-                onEdit = { onEdit(row.recipe.id) },
-                onDeleteClick = { onDeleteClick(row.recipe.id) },
+                recipe = recipe,
+                onOpen = { onOpen(recipe.id) },
+                onEdit = { onEdit(recipe.id) },
+                onDeleteClick = { onDeleteClick(recipe.id) },
             )
         }
     }
@@ -421,7 +422,7 @@ fun RecipeList(
 
 @Composable
 fun RecipeListItem(
-    row: RecipeListRowUi,
+    recipe: RecipeEntity,
     onOpen: () -> Unit,
     onEdit: () -> Unit,
     onDeleteClick: () -> Unit,
@@ -440,15 +441,15 @@ fun RecipeListItem(
                 Modifier
                     .weight(1f)
             ) {
-                Text(row.recipe.title, style = MaterialTheme.typography.titleMedium)
-                if (!row.recipe.description.isNullOrBlank()) {
+                Text(recipe.title, style = MaterialTheme.typography.titleMedium)
+                if (!recipe.description.isNullOrBlank()) {
                     Spacer(Modifier.height(4.dp))
-                    Text(row.recipe.description, style = MaterialTheme.typography.bodyMedium)
+                    Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
                 }
             }
 
 
-            row.recipe.imageUrl?.let { url ->
+            recipe.imageUrl?.let { url ->
                 Box(
                     Modifier
                         .weight(1f)

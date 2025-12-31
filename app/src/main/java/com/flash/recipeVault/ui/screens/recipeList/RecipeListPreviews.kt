@@ -1,12 +1,7 @@
 package com.flash.recipeVault.ui.screens.recipeList
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.data.RecipeEntity
@@ -45,7 +40,7 @@ private fun previewRecipes(): List<RecipeEntity> = listOf(
 private fun RecipeListBodyPreview_Empty() {
     RecipeListBody(
         padding = PaddingValues(0.dp),
-        rows = emptyList(),
+        recipes = emptyList(),
         onOpen = {},
         onEdit = {},
         onDeleteClick = {},
@@ -57,7 +52,7 @@ private fun RecipeListBodyPreview_Empty() {
 private fun RecipeListBodyPreview_List() {
     RecipeListBody(
         padding = PaddingValues(0.dp),
-        rows = emptyList(),
+        recipes = emptyList(),
         onOpen = {},
         onEdit = {},
         onDeleteClick = {},
@@ -68,9 +63,7 @@ private fun RecipeListBodyPreview_List() {
 @Composable
 private fun RecipeListItemPreview_WithDescription() {
     RecipeListItem(
-        row = RecipeListRowUi(
-            recipe = previewRecipes().first(),
-        ),
+        recipe = previewRecipes().first(),
         onOpen = {},
         onEdit = {},
         onDeleteClick = {},
@@ -81,9 +74,7 @@ private fun RecipeListItemPreview_WithDescription() {
 @Composable
 private fun RecipeListItemPreview_NoDescription() {
     RecipeListItem(
-        row = RecipeListRowUi(
-            recipe = previewRecipes().last(),
-        ),
+        recipe = previewRecipes().first(),
         onOpen = {},
         onEdit = {},
         onDeleteClick = {},
