@@ -6,7 +6,9 @@ import android.content.Context
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -17,9 +19,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,7 +31,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -65,14 +71,22 @@ fun AuthScreen(
         authVm.onGoogleResult(result.resultCode, result.data)
     }
 
+    var isFinishing by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         authVm.events.collectLatest { event ->
             when (event) {
-                is AuthEvent.Toast -> Toast.makeText(context, event.message, Toast.LENGTH_LONG)
-                    .show()
+                is AuthEvent.Toast -> {
+                    if (isFinishing) return@collectLatest
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
 
-                AuthEvent.NavigateLoggedIn -> onLoggedIn()
+                AuthEvent.NavigateLoggedIn -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onLoggedIn()
+                }
+
                 AuthEvent.LaunchGoogleSignIn -> googleLauncher.launch(googleClient.signInIntent)
             }
         }
@@ -80,17 +94,32 @@ fun AuthScreen(
 
 
     Scaffold { padding ->
-        AuthFormContent(
-            padding = padding,
-            email = form.email,
-            onEmailChange = authVm::onEmailChange,
-            password = form.password,
-            onPasswordChange = authVm::onPasswordChange,
-            state = state,
-            onSignIn = authVm::submitSignIn,
-            onSignUp = authVm::submitSignUp,
-            onGoogleSignIn = { authVm.onGoogleSignInClicked(webClientId) }
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            AuthFormContent(
+                padding = padding,
+                email = form.email,
+                onEmailChange = authVm::onEmailChange,
+                password = form.password,
+                onPasswordChange = authVm::onPasswordChange,
+                state = state,
+                onSignIn = authVm::submitSignIn,
+                onSignUp = authVm::submitSignUp,
+                onGoogleSignIn = { authVm.onGoogleSignInClicked(webClientId) }
+            )
+
+            if (isFinishing) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)
+                        )
+                )
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
     }
 }
 
