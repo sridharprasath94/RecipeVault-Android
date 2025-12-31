@@ -3,7 +3,6 @@ package com.flash.recipeVault.ui.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +23,7 @@ fun FormTopBar(
     title: String,
     actionLabel: String,
     isInteractionEnabled: Boolean,
+    isActionInProgress: Boolean = false,
     onBack: () -> Unit,
     onPrimaryAction: () -> Unit,
 ) {
@@ -41,9 +41,9 @@ fun FormTopBar(
             actions = {
                 TextButton(
                     onClick = onPrimaryAction,
-                    enabled = isInteractionEnabled
+                    enabled = isInteractionEnabled && !isActionInProgress
                 ) {
-                    if (!isInteractionEnabled) {
+                    if (isActionInProgress) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
                             strokeWidth = 2.dp

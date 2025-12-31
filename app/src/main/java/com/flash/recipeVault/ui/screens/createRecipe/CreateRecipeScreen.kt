@@ -67,7 +67,11 @@ fun CreateRecipeScreen(
                     onCreated(event.id)
                 }
 
-                CreateRecipeEvent.OnBackClicked -> onBack()
+                CreateRecipeEvent.OnBackClicked -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onBack()
+                }
             }
         }
     }
@@ -130,14 +134,15 @@ fun CreateRecipeContent(
     onStepAdd: () -> Unit,
 ) {
     val imePadding = rememberAnimatedImeBottomPadding()
+    val isInteractionEnabled = !ui.isSaving && !isFinishing
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
         topBar = {
             FormTopBar(
                 title = "New Recipe",
                 actionLabel = "Save",
-                isInteractionEnabled =
-                    !ui.isSaving && !isFinishing,
+                isInteractionEnabled = isInteractionEnabled,
+                isActionInProgress = ui.isSaving,
                 onBack = onBack,
                 onPrimaryAction = onSave
             )

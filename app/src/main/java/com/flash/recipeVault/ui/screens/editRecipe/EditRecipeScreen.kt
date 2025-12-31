@@ -66,7 +66,11 @@ fun EditRecipeScreen(
                     onBack()
                 }
 
-                EditRecipeEvent.OnBackClicked -> onBack()
+                EditRecipeEvent.OnBackClicked -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onBack()
+                }
             }
         }
     }
@@ -129,13 +133,15 @@ fun EditRecipeContent(
     onStepAdd: () -> Unit,
 ) {
     val imePadding = rememberAnimatedImeBottomPadding()
+    val isInteractionEnabled = !ui.isSaving && !ui.isLoadingData && !isFinishing
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
         topBar = {
             FormTopBar(
                 title = "Edit Recipe",
                 actionLabel = "Save",
-                isInteractionEnabled = !ui.isSaving && !ui.isLoadingData && !isFinishing,
+                isInteractionEnabled = isInteractionEnabled,
+                isActionInProgress = ui.isSaving,
                 onBack = onBack,
                 onPrimaryAction = onSave
             )
@@ -164,7 +170,7 @@ fun EditRecipeContent(
                 onStepAdd = onStepAdd
             )
 
-            if (ui.isSaving || ui.isLoadingData) {
+            if (!isInteractionEnabled) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
