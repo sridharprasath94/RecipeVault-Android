@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class RecipeListUiState(
+    val currentUserUid: String =  FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous",
     val recipes: List<RecipeEntity> = emptyList(),
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
@@ -22,6 +24,7 @@ data class RecipeListUiState(
     val isSyncing: Boolean = false,
     val isCloudSynced: Boolean = false,
     val lastSyncedAt: Long = 0L,
+    val didAutoSync: Boolean = false,
     val isLoadingData: Boolean = false,
     val isNavigating: Boolean = false,
 ) {
@@ -81,6 +84,21 @@ class RecipeListViewModel(
                     }
                 }
         }
+    }
+
+    fun maybeAutoSync() {
+        val ui = _ui.value
+
+        val shouldAutoSync =
+            !ui.didAutoSync &&
+                    !ui.isCloudSynced &&
+                    ui.lastSyncedAt == 0L &&
+                    ui.recipes.isNotEmpty()
+
+        if (!shouldAutoSync) return
+
+        _ui.update { it.copy(didAutoSync = true) }
+        syncNowWithCloud()
     }
 
     fun requestEditRecipe(recipeId: Long) {

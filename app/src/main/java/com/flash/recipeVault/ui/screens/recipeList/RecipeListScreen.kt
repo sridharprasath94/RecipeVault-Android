@@ -45,11 +45,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+Moveimport androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -65,7 +62,6 @@ import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.io.File
@@ -87,14 +83,10 @@ fun RecipeListScreen(
 
     val context = LocalContext.current
     val ui by vm.ui.collectAsState()
-    val uid = remember {
-        FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous"
-    }
     val scope = rememberCoroutineScope()
-    val prefs = remember(uid) {
-        context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
+    val prefs = remember(ui.currentUserUid) {
+        context.getSharedPreferences("recipe_list_sync_${ui.currentUserUid}", Context.MODE_PRIVATE)
     }
-    var didAutoSync by rememberSaveable { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     LaunchedEffect(lifecycleOwner) {
@@ -119,15 +111,7 @@ fun RecipeListScreen(
     }
 
     LaunchedEffect(ui.isCloudSynced, ui.lastSyncedAt, ui.recipes) {
-        if (didAutoSync) return@LaunchedEffect
-
-        val shouldAutoSync =
-            !ui.isCloudSynced && ui.lastSyncedAt == 0L && ui.recipes.isNotEmpty()
-
-        if (shouldAutoSync) {
-            didAutoSync = true
-            vm.syncNowWithCloud()
-        }
+        vm.maybeAutoSync()
     }
 
     // Save JSON to any document provider. If Google Drive is installed, choose Drive here.
