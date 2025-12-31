@@ -1,6 +1,7 @@
 package com.flash.recipeVault.ui.screens.recipeDetail
 
 import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -31,13 +33,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.flash.recipeVault.data.RecipeWithDetails
 import com.flash.recipeVault.ui.components.ConfirmationDialog
+import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.util.RecipeAsyncImage
 import kotlinx.coroutines.flow.collectLatest
 
@@ -45,31 +49,39 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun RecipeDetailScreen(
     vm: RecipeDetailViewModel,
-    recipeId: Long,
     onBack: () -> Unit,
     onEdit: (Long) -> Unit
 ) {
     val context = LocalContext.current
-    val recipeWithDetails by vm.recipe.collectAsState()
     val ui by vm.ui.collectAsState()
+    var isFinishing by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         vm.events.collectLatest { event ->
             when (event) {
                 is RecipeDetailEvent.Deleted -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
                     onBack()
                 }
 
-                is RecipeDetailEvent.Toast -> Toast.makeText(
-                    context,
-                    event.message,
-                    Toast.LENGTH_LONG
-                ).show()
+                is RecipeDetailEvent.Toast -> {
+                    if (isFinishing) return@collectLatest
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
 
-                is RecipeDetailEvent.OnEditClicked -> onEdit(recipeId)
-                RecipeDetailEvent.OnBackClicked -> onBack()
+                is RecipeDetailEvent.OnEditClicked -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onEdit(event.recipeId)
+                }
+
+                RecipeDetailEvent.OnBackClicked -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onBack()
+                }
             }
         }
-
     }
 
     ConfirmationDialog(
@@ -81,79 +93,83 @@ fun RecipeDetailScreen(
         onDismiss = vm::dismissDelete,
     )
 
-    Scaffold(
-        topBar = {
-            RecipeDetailTopBar(
-                onBack = vm::requestBack,
-                onEdit = vm::requestEdit,
-                onDelete = vm::requestDelete
-            )
-        }
-    ) { padding ->
-        RecipeDetailContent(
-            padding = padding,
-            data = recipeWithDetails
-        )
-    }
+    RecipeDetailContent(
+        ui = ui,
+        isFinishing = isFinishing,
+        onBack = vm::requestBack,
+        onEdit = vm::requestEdit,
+        onDelete = vm::requestDelete
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetailTopBar(
+fun RecipeDetailContent(
+    ui: RecipeDetailUiState,
+    isFinishing: Boolean,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text("Recipe") },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-        },
-        actions = {
-            IconButton(onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
-            }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+    val isInteractionEnabled = !ui.isLoadingData && !isFinishing
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Recipe") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    if (!isFinishing) {
+                        IconButton(onClick = onEdit) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
+                    }
+
+                }
+            )
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            RecipeDetailBody(
+                padding = padding,
+                title = ui.title,
+                description = ui.description,
+                imageUrl = ui.existingImageUrl,
+                ingredients = ui.ingredients,
+                steps = ui.steps
+            )
+
+            if (!isInteractionEnabled) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)
+                        )
+                )
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
             }
         }
-    )
-}
-
-@Composable
-fun RecipeDetailContent(
-    padding: PaddingValues,
-    data: RecipeWithDetails?,
-) {
-    if (data == null) {
-        RecipeDetailLoading(padding = padding)
-    } else {
-        RecipeDetailBody(padding = padding, data = data)
-    }
-}
-
-@Composable
-private fun RecipeDetailLoading(padding: PaddingValues) {
-    Box(
-        Modifier
-            .padding(padding)
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Loading…")
     }
 }
 
 @Composable
 fun RecipeDetailBody(
     padding: PaddingValues,
-    data: RecipeWithDetails,
+    title: String,
+    description: String?,
+    imageUrl: String?,
+    ingredients: List<IngredientFormRow>,
+    steps: List<String>,
 ) {
-    val ingredients = remember(data.ingredients) { data.ingredients.sortedBy { it.sortOrder } }
-    val steps = remember(data.steps) { data.steps.sortedBy { it.sortOrder } }
-
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -162,18 +178,18 @@ fun RecipeDetailBody(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text(data.recipe.title, style = MaterialTheme.typography.headlineSmall)
+            Text(title, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (!data.recipe.description.isNullOrBlank()) {
+            if (!description.isNullOrBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text(data.recipe.description, style = MaterialTheme.typography.bodyLarge)
+                Text(description, style = MaterialTheme.typography.bodyLarge)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            data.recipe.imageUrl?.let { url ->
+            imageUrl?.let { url ->
                 Spacer(Modifier.height(12.dp))
                 RecipeAsyncImage(
                     model = url,
@@ -190,7 +206,7 @@ fun RecipeDetailBody(
                         IngredientItemText(
                             index = index + 1,
                             name = ing.name,
-                            quantity = ing.quantity,
+                            quantity = ing.qty,
                             unit = ing.unit
                         )
                         if (index != ingredients.lastIndex) {
@@ -209,7 +225,7 @@ fun RecipeDetailBody(
                     steps.forEachIndexed { index, step ->
                         StepItemText(
                             index = index + 1,
-                            instruction = step.instruction
+                            instruction = step
                         )
                         if (index != steps.lastIndex) {
                             Spacer(Modifier.height(12.dp))

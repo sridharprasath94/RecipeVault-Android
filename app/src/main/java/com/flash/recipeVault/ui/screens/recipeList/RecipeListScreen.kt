@@ -88,7 +88,7 @@ fun RecipeListScreen(
     val prefs = remember(uid) {
         context.getSharedPreferences("recipe_list_sync_${uid}", Context.MODE_PRIVATE)
     }
-
+    var isFinishing by remember { mutableStateOf(false) }
     var didAutoSync by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         val synced = prefs.getBoolean(cloudSyncedStatusKey, false)
@@ -139,15 +139,22 @@ fun RecipeListScreen(
     LaunchedEffect(Unit) {
         vm.events.collectLatest { event ->
             when (event) {
-                is RecipeListEvent.Toast -> Toast.makeText(
-                    context,
-                    event.message,
-                    Toast.LENGTH_LONG
-                ).show()
+                is RecipeListEvent.Toast -> {
+                    if (isFinishing) return@collectLatest
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
 
-                is RecipeListEvent.OnEditRecipe -> onEditRecipe(event.recipeId)
+                is RecipeListEvent.OnEditRecipe -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onEditRecipe(event.recipeId)
+                }
 
-                is RecipeListEvent.OnOpenRecipe -> onOpenRecipe(event.recipeId)
+                is RecipeListEvent.OnOpenRecipe -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onOpenRecipe(event.recipeId)
+                }
 
                 RecipeListEvent.SyncNow -> {
                     if (!ui.isSyncing) {
@@ -204,7 +211,11 @@ fun RecipeListScreen(
                     }
                 }
 
-                RecipeListEvent.LoggedOut -> onLoggedOut()
+                RecipeListEvent.LoggedOut -> {
+                    if (isFinishing) return@collectLatest
+                    isFinishing = true
+                    onLoggedOut()
+                }
             }
         }
     }
@@ -223,62 +234,68 @@ fun RecipeListScreen(
             TopAppBar(
                 title = { Text("Recipes") },
                 actions = {
-                    IconButton(onClick = vm::onMenuToggle) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                    if (!isFinishing) {
+                        IconButton(onClick = vm::onMenuToggle) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                        }
+
+                        DropdownMenu(
+                            expanded = ui.showMenu,
+                            onDismissRequest = vm::onMenuDismiss
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(ui.syncLabel)
+                                        Spacer(Modifier.height(2.dp))
+                                        Text(
+                                            ui.syncSupportingText,
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+                                    }
+                                },
+                                onClick = vm::syncNowWithCloud,
+                                trailingIcon = {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        SyncStatusIcon(
+                                            isSyncing = ui.isSyncing,
+                                            isCloudSynced = ui.isCloudSynced,
+                                        )
+                                    }
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Backup") },
+                                onClick = vm::backupClicked
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Share") },
+                                onClick = vm::shareClicked
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Log out") },
+                                onClick = vm::requestLogout
+                            )
+                        }
                     }
 
-                    DropdownMenu(
-                        expanded = ui.showMenu,
-                        onDismissRequest = vm::onMenuDismiss
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Column {
-                                    Text(ui.syncLabel)
-                                    Spacer(Modifier.height(2.dp))
-                                    Text(
-                                        ui.syncSupportingText,
-                                        style = MaterialTheme.typography.bodySmall
-                                    )
-                                }
-                            },
-                            onClick = vm::syncNowWithCloud,
-                            trailingIcon = {
-                                Box(
-                                    modifier = Modifier
-                                        .padding(horizontal = 6.dp, vertical = 4.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    SyncStatusIcon(
-                                        isSyncing = ui.isSyncing,
-                                        isCloudSynced = ui.isCloudSynced,
-                                    )
-                                }
-                            }
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Backup") },
-                            onClick = vm::backupClicked
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Share") },
-                            onClick = vm::shareClicked
-                        )
-
-                        DropdownMenuItem(
-                            text = { Text("Log out") },
-                            onClick = vm::requestLogout
-                        )
-                    }
                 }
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = onAdd) {
-                Icon(Icons.Default.Add, contentDescription = "Add")
+            if (!isFinishing) {
+                FloatingActionButton(onClick = onAdd) {
+                    Icon(Icons.Default.Add, contentDescription = "Add")
+                }
             }
+
         }
     ) { padding ->
         RecipeListBody(

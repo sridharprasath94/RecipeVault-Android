@@ -105,7 +105,6 @@ fun AppRoot(container: AppContainer) {
                 val vm = remember(id) { RecipeDetailViewModel(container, id) }
                 RecipeDetailScreen(
                     vm = vm,
-                    recipeId = id,
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate("${Routes.EDIT}/$id") }
                 )
