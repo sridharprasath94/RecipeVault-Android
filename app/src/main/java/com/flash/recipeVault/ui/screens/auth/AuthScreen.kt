@@ -43,6 +43,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.R
 import com.flash.recipeVault.ui.components.StandardTextField
 import com.google.android.gms.auth.api.signin.GoogleSignIn
@@ -72,6 +75,12 @@ fun AuthScreen(
     }
 
     var isFinishing by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            isFinishing = false
+        }
+    }
 
     LaunchedEffect(Unit) {
         authVm.events.collectLatest { event ->

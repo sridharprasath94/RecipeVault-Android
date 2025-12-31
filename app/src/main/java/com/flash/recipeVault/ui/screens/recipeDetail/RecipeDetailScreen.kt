@@ -38,8 +38,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.util.RecipeAsyncImage
@@ -55,6 +59,13 @@ fun RecipeDetailScreen(
     val context = LocalContext.current
     val ui by vm.ui.collectAsState()
     var isFinishing by remember { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            isFinishing = false
+        }
+    }
+
     LaunchedEffect(Unit) {
         vm.events.collectLatest { event ->
             when (event) {
@@ -114,25 +125,32 @@ fun RecipeDetailContent(
     val isInteractionEnabled = !ui.isLoadingData && !isFinishing
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Recipe") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    if (!isFinishing) {
-                        IconButton(onClick = onEdit) {
+            Box {
+                TopAppBar(
+                    title = { Text("Recipe") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack, enabled = isInteractionEnabled) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onEdit, enabled = isInteractionEnabled) {
                             Icon(Icons.Default.Edit, contentDescription = "Edit")
                         }
-                        IconButton(onClick = onDelete) {
+                        IconButton(onClick = onDelete, enabled = isInteractionEnabled) {
                             Icon(Icons.Default.Delete, contentDescription = "Delete")
                         }
                     }
+                )
 
+                if (!isInteractionEnabled) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .pointerInput(Unit) { /* consume all touches */ }
+                    )
                 }
-            )
+            }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {

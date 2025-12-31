@@ -26,6 +26,7 @@ data class RecipeListUiState(
     val isSyncing: Boolean = false,
     val isCloudSynced: Boolean = false,
     val lastSyncedAt: Long = 0L,
+    val isNavigating: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
     val syncLabel: String
@@ -49,7 +50,7 @@ sealed interface RecipeListEvent {
     object ShareBackup : RecipeListEvent
     object PerformGoogleSignOut : RecipeListEvent
     object LoggedOut : RecipeListEvent
-    data class OnOpenRecipe(val recipeId: Long): RecipeListEvent
+    data class OnOpenRecipe(val recipeId: Long) : RecipeListEvent
     data class OnEditRecipe(val recipeId: Long) : RecipeListEvent
     data class Toast(val message: String) : RecipeListEvent
 }
@@ -79,23 +80,32 @@ class RecipeListViewModel(
         }
     }
 
-    fun requestEditRecipe(recipeId: Long){
-        _events.tryEmit(RecipeListEvent.OnEditRecipe(recipeId))
+    fun requestEditRecipe(recipeId: Long) {
+        emitIfAllowed(RecipeListEvent.OnEditRecipe(recipeId))
     }
 
-    fun requestOpenRecipe(recipeId: Long){
-        _events.tryEmit(RecipeListEvent.OnOpenRecipe(recipeId))
+    fun requestOpenRecipe(recipeId: Long) {
+        emitIfAllowed(RecipeListEvent.OnOpenRecipe(recipeId))
     }
+
     fun syncNowWithCloud() {
-        _events.tryEmit(RecipeListEvent.SyncNow)
+        emitIfAllowed(RecipeListEvent.SyncNow)
     }
 
     fun backupClicked() {
-        onMenuDismiss(); _events.tryEmit(RecipeListEvent.BackupToDocument)
+        onMenuDismiss(); emitIfAllowed(RecipeListEvent.BackupToDocument)
     }
 
     fun shareClicked() {
-        onMenuDismiss(); _events.tryEmit(RecipeListEvent.ShareBackup)
+        onMenuDismiss(); emitIfAllowed(RecipeListEvent.ShareBackup)
+    }
+
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
     }
 
     /** Restore persisted last successful sync timestamp (e.g., after app restart). */
@@ -119,12 +129,12 @@ class RecipeListViewModel(
 
     fun confirmLogout() {
         _ui.update { it.copy(showLogoutDialog = false, showMenu = false) }
-        _events.tryEmit(RecipeListEvent.PerformGoogleSignOut)
+        emitIfAllowed(RecipeListEvent.PerformGoogleSignOut)
     }
 
     fun onGoogleSignOutCompleted() {
         container.signOut()
-        _events.tryEmit(RecipeListEvent.LoggedOut)
+        emitIfAllowed(RecipeListEvent.LoggedOut)
     }
 
     fun requestDelete(id: Long) = _ui.update { it.copy(deleteRecipeId = id) }
@@ -138,10 +148,10 @@ class RecipeListViewModel(
             runCatching {
                 repo.deleteRecipe(id)
             }.onSuccess {
-                _events.emit(RecipeListEvent.Toast("Recipe deleted"))
-                _events.emit(RecipeListEvent.SyncNow)
+                emitIfAllowed(RecipeListEvent.Toast("Recipe deleted"))
+                emitIfAllowed(RecipeListEvent.SyncNow)
             }.onFailure {
-                _events.emit(
+                emitIfAllowed(
                     RecipeListEvent.Toast(
                         it.message ?: "Failed to delete recipe"
                     )
@@ -164,7 +174,7 @@ class RecipeListViewModel(
             }.onFailure { it ->
                 _ui.update { it.copy(isSyncing = false, isCloudSynced = false) }
                 val msg = it.message ?: "Sync failed"
-                _events.tryEmit(RecipeListEvent.Toast(msg))
+                emitIfAllowed(RecipeListEvent.Toast(msg))
                 onFailure(msg)
             }
         }
@@ -172,5 +182,11 @@ class RecipeListViewModel(
 
     suspend fun exportedJson(): String {
         return repo.exportAllAsJson()
+    }
+
+    private fun emitIfAllowed(event: RecipeListEvent) {
+        if (!_ui.value.isNavigating) {
+            _events.tryEmit(event)
+        }
     }
 }
