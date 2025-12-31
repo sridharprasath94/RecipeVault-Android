@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -60,7 +61,11 @@ class RecipeListViewModel(
     private val _ui = MutableStateFlow(RecipeListUiState())
     val ui: StateFlow<RecipeListUiState> = _ui
 
-    private val _events = MutableSharedFlow<RecipeListEvent>(extraBufferCapacity = 1)
+    private val _events = MutableSharedFlow<RecipeListEvent>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     val events = _events.asSharedFlow()
 
     init {

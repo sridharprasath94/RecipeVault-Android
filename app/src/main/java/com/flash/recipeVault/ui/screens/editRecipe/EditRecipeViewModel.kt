@@ -11,13 +11,11 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -49,8 +47,7 @@ class EditRecipeViewModel(
     private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
     private val _ui = MutableStateFlow(EditRecipeUiState())
     val ui: StateFlow<EditRecipeUiState> = _ui
-    val recipe = recipeRepository.observeRecipe(recipeId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val _events = MutableSharedFlow<EditRecipeEvent>(
         replay = 0,
         extraBufferCapacity = 1,

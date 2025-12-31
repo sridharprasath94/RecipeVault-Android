@@ -11,6 +11,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -36,7 +37,6 @@ sealed class AuthState {
 data class AuthFormUiState(
     val email: String = "",
     val password: String = "",
-    val message: String? = null,
     val isNavigating: Boolean = false,
 )
 
@@ -51,7 +51,9 @@ class AuthViewModel(
     val ui: StateFlow<AuthFormUiState> = _ui
 
     private val _events = MutableSharedFlow<AuthEvent>(
+        replay = 0,
         extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
     )
     val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
 
@@ -59,15 +61,11 @@ class AuthViewModel(
     private var cachedUid: String? = null
 
     fun onEmailChange(v: String) {
-        _ui.value = _ui.value.copy(email = v, message = null)
+        _ui.value = _ui.value.copy(email = v)
     }
 
     fun onPasswordChange(v: String) {
-        _ui.value = _ui.value.copy(password = v, message = null)
-    }
-
-    fun clearMessage() {
-        if (_ui.value.message != null) _ui.value = _ui.value.copy(message = null)
+        _ui.value = _ui.value.copy(password = v)
     }
 
     private val authListener = FirebaseAuth.AuthStateListener { refresh() }
@@ -109,7 +107,6 @@ class AuthViewModel(
         val cleanPass = password.trim()
 
         if (cleanEmail.isBlank() || cleanPass.isBlank()) {
-            _ui.value = _ui.value.copy(message = "Email and password are required")
             toast("Email and password are required")
             return@launch
         }
@@ -128,7 +125,6 @@ class AuthViewModel(
         val cleanPass = password.trim()
 
         if (cleanEmail.isBlank() || cleanPass.isBlank()) {
-            _ui.value = _ui.value.copy(message = "Email and password are required")
             toast("Email and password are required")
             return@launch
         }
@@ -151,7 +147,6 @@ class AuthViewModel(
             _state.value = AuthState.Loading
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-            clearMessage()
             Log.d("AuthViewModel", "Google sign-in successful")
             refresh()
         } catch (e: Exception) {
