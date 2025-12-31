@@ -6,6 +6,8 @@ import com.flash.recipeVault.data.SuggestionType
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailEvent
+import com.flash.recipeVault.ui.screens.recipeList.RecipeListEvent
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,13 +16,16 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface CreateRecipeEvent {
     data class Toast(val message: String) : CreateRecipeEvent
-    data class  OnFinishedSaving(val id: Long) : CreateRecipeEvent
+    object OnBackClicked : CreateRecipeEvent
+    data class OnFinishedSaving(val id: Long) : CreateRecipeEvent
 }
 
 data class CreateRecipeUiState(
@@ -30,13 +35,14 @@ data class CreateRecipeUiState(
     val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
+    val suggestions: SuggestionsUi = SuggestionsUi(),
     val isSaving: Boolean = false,
+    val isNavigating: Boolean = false,
 )
 
 class CreateRecipeViewModel(
     container: AppContainer,
 ) : ViewModel() {
-
     private val recipeRepository = container.recipeRepositoryForCurrentUser()
     private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
     private val _ui = MutableStateFlow(CreateRecipeUiState())
@@ -48,22 +54,24 @@ class CreateRecipeViewModel(
     )
     val events: SharedFlow<CreateRecipeEvent> = _events.asSharedFlow()
 
-    val suggestions: StateFlow<SuggestionsUi> =
-        combine(
-            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
-            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
-            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
-        ) { ing, unit, step ->
-            SuggestionsUi(
-                ingredients = ing,
-                units = unit,
-                steps = step
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SuggestionsUi()
-        )
+    init {
+        // Observe suggestions
+        viewModelScope.launch {
+            combine(
+                suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+                suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+                suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+            ) { ing, unit, step ->
+                SuggestionsUi(
+                    ingredients = ing,
+                    units = unit,
+                    steps = step
+                )
+            }.collect { suggestions ->
+                _ui.update { it.copy(suggestions = suggestions) }
+            }
+        }
+    }
 
     fun updateTitle(value: String) {
         _ui.update { it.copy(title = value) }
@@ -102,7 +110,9 @@ class CreateRecipeViewModel(
     fun onIngredientRemoved(index: Int) {
         _ui.update { state ->
             val list = state.ingredients.toMutableList()
-            if (list.size <= 1) { return@update state.copy(ingredients = listOf(IngredientFormRow())) }
+            if (list.size <= 1) {
+                return@update state.copy(ingredients = listOf(IngredientFormRow()))
+            }
             if (index in list.indices) list.removeAt(index)
             state.copy(ingredients = list)
         }
@@ -123,11 +133,15 @@ class CreateRecipeViewModel(
     fun onStepRemoved(index: Int) {
         _ui.update { state ->
             val list = state.steps.toMutableList()
-            if (list.size <= 1) { return@update state.copy(steps = listOf("")) }
+            if (list.size <= 1) {
+                return@update state.copy(steps = listOf(""))
+            }
             if (index in list.indices) list.removeAt(index)
             state.copy(steps = list)
         }
     }
+
+    fun requestBack() = emitIfAllowed(CreateRecipeEvent.OnBackClicked)
 
     private fun validate(
         title: String,
@@ -149,8 +163,6 @@ class CreateRecipeViewModel(
     }
 
     fun save() {
-        if(_ui.value.isSaving) return
-        _ui.update { it.copy(isSaving = true) }
         val state = _ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim().ifEmpty { null }
@@ -173,8 +185,10 @@ class CreateRecipeViewModel(
             return
         }
 
+        if (_ui.value.isSaving) return
         viewModelScope.launch {
             try {
+                _ui.update { it.copy(isSaving = true) }
                 val id = recipeRepository.createRecipe(
                     title = cleanTitle,
                     description = cleanDesc,
@@ -206,11 +220,24 @@ class CreateRecipeViewModel(
     }
 
     private fun onFinishedSaving(id: Long) {
-        _events.tryEmit(CreateRecipeEvent.OnFinishedSaving(id))
+        emitIfAllowed(CreateRecipeEvent.OnFinishedSaving(id))
     }
 
     private fun toast(message: String) {
-        _events.tryEmit(CreateRecipeEvent.Toast(message))
+        emitIfAllowed(CreateRecipeEvent.Toast(message))
     }
 
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
+    private fun emitIfAllowed(event: CreateRecipeEvent) {
+        if (!_ui.value.isNavigating) {
+            _events.tryEmit(event)
+        }
+    }
 }

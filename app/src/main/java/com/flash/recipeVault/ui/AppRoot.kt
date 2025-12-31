@@ -5,7 +5,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,10 +20,10 @@ import com.flash.recipeVault.ui.screens.createRecipe.CreateRecipeViewModel
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeScreen
 import com.flash.recipeVault.ui.screens.editRecipe.EditRecipeViewModel
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailScreen
+import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailViewModel
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListScreen
 import com.flash.recipeVault.ui.screens.recipeList.RecipeListViewModel
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
-import com.google.firebase.firestore.ListenerRegistration
 
 object Routes {
     const val AUTH = "auth"
@@ -63,7 +62,7 @@ fun AppRoot(container: AppContainer) {
         ) {
             composable(Routes.AUTH) {
                 AuthScreen(
-                    authVm = authVm,
+                    vm = authVm,
                     onLoggedIn = {
                         nav.navigate(Routes.LIST) {
                             popUpTo(Routes.AUTH) {
@@ -80,8 +79,8 @@ fun AppRoot(container: AppContainer) {
                 RecipeListScreen(
                     vm = vm,
                     onAdd = { nav.navigate(Routes.CREATE) },
-                    onEdit = { id -> nav.navigate("${Routes.EDIT}/$id") },
-                    onOpen = { id -> nav.navigate("${Routes.DETAIL}/$id") },
+                    onEditRecipe = { id -> nav.navigate("${Routes.EDIT}/$id") },
+                    onOpenRecipe = { id -> nav.navigate("${Routes.DETAIL}/$id") },
                     onLoggedOut = {
                         nav.navigate(Routes.AUTH) { popUpTo(Routes.LIST) { inclusive = true } }
                     }
@@ -103,9 +102,9 @@ fun AppRoot(container: AppContainer) {
                 arguments = listOf(navArgument("id") { type = NavType.LongType })
             ) { backStack ->
                 val id = backStack.arguments?.getLong("id") ?: return@composable
+                val vm = remember(id) { RecipeDetailViewModel(container, id) }
                 RecipeDetailScreen(
-                    container = container,
-                    recipeId = id,
+                    vm = vm,
                     onBack = { nav.popBackStack() },
                     onEdit = { nav.navigate("${Routes.EDIT}/$id") }
                 )

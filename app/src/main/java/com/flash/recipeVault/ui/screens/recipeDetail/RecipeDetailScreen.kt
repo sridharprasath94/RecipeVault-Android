@@ -1,5 +1,7 @@
 package com.flash.recipeVault.ui.screens.recipeDetail
 
+import android.widget.Toast
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -24,107 +28,158 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.flash.recipeVault.data.RecipeWithDetails
-import com.flash.recipeVault.di.AppContainer
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import com.flash.recipeVault.ui.components.ConfirmationDialog
+import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.util.RecipeAsyncImage
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecipeDetailScreen(
-    container: AppContainer,
-    recipeId: Long,
+    vm: RecipeDetailViewModel,
     onBack: () -> Unit,
     onEdit: (Long) -> Unit
 ) {
-    val repo = remember { container.recipeRepositoryForCurrentUser() }
-    val vm = remember { RecipeDetailViewModel(recipeId, repo) }
-    val recipeWithDetails by vm.recipe.collectAsState()
+    val context = LocalContext.current
+    val ui by vm.ui.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            vm.onScreenVisible()
+        }
+    }
 
-    Scaffold(
-        topBar = {
-            RecipeDetailTopBar(
-                recipeId = recipeId,
-                onBack = onBack,
-                onEdit = onEdit,
-                onDelete = {
-                    vm.delete()
+    LaunchedEffect(Unit) {
+        vm.events.collectLatest { event ->
+            when (event) {
+                is RecipeDetailEvent.Deleted -> {
+                    vm.startNavigation()
                     onBack()
                 }
-            )
+
+                is RecipeDetailEvent.Toast -> {
+                    Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
+                }
+
+                is RecipeDetailEvent.OnEditClicked -> {
+                    vm.startNavigation()
+                    onEdit(event.recipeId)
+                }
+
+                RecipeDetailEvent.OnBackClicked -> {
+                    vm.startNavigation()
+                    onBack()
+                }
+            }
         }
-    ) { padding ->
-        RecipeDetailContent(
-            padding = padding,
-            data = recipeWithDetails
-        )
     }
+
+    ConfirmationDialog(
+        show = ui.showDeleteDialog,
+        title = "Delete recipe?",
+        message = "This action cannot be undone.",
+        confirmButtonText = "Delete",
+        onConfirm = vm::confirmDelete,
+        onDismiss = vm::dismissDelete,
+    )
+
+    RecipeDetailContent(
+        ui = ui,
+        isNavigating = ui.isNavigating,
+        onBack = vm::requestBack,
+        onEdit = vm::requestEdit,
+        onDelete = vm::requestDelete
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetailTopBar(
-    recipeId: Long,
+fun RecipeDetailContent(
+    ui: RecipeDetailUiState,
+    isNavigating: Boolean,
     onBack: () -> Unit,
-    onEdit: (Long) -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    TopAppBar(
-        title = { Text("Recipe") },
-        navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-        },
-        actions = {
-            TextButton(onClick = { onEdit(recipeId) }) { Text("Edit") }
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+    val isInteractionEnabled = !ui.isLoadingData && !isNavigating
+    Scaffold(
+        topBar = {
+            Box {
+                TopAppBar(
+                    title = { Text("Recipe") },
+                    navigationIcon = {
+                        IconButton(onClick = onBack, enabled = isInteractionEnabled) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = onEdit, enabled = isInteractionEnabled) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit")
+                        }
+                        IconButton(onClick = onDelete, enabled = isInteractionEnabled) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        }
+                    }
+                )
+
+                if (!isInteractionEnabled) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .pointerInput(Unit) { /* consume all touches */ }
+                    )
+                }
             }
         }
-    )
-}
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            RecipeDetailBody(
+                padding = padding,
+                title = ui.title,
+                description = ui.description,
+                imageUrl = ui.existingImageUrl,
+                ingredients = ui.ingredients,
+                steps = ui.steps
+            )
 
-@Composable
-fun RecipeDetailContent(
-    padding: PaddingValues,
-    data: RecipeWithDetails?,
-) {
-    if (data == null) {
-        RecipeDetailLoading(padding = padding)
-    } else {
-        RecipeDetailBody(padding = padding, data = data)
-    }
-}
-
-@Composable
-private fun RecipeDetailLoading(padding: PaddingValues) {
-    Box(
-        Modifier
-            .padding(padding)
-            .fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text("Loading…")
+            if (!isInteractionEnabled) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f)
+                        )
+                )
+                CircularProgressIndicator(
+                    modifier = Modifier.align(Alignment.Center)
+                )
+            }
+        }
     }
 }
 
 @Composable
 fun RecipeDetailBody(
     padding: PaddingValues,
-    data: RecipeWithDetails,
+    title: String,
+    description: String?,
+    imageUrl: String?,
+    ingredients: List<IngredientFormRow>,
+    steps: List<String>,
 ) {
-    val ingredients = remember(data.ingredients) { data.ingredients.sortedBy { it.sortOrder } }
-    val steps = remember(data.steps) { data.steps.sortedBy { it.sortOrder } }
-
     LazyColumn(
         modifier = Modifier
             .padding(padding)
@@ -133,18 +188,18 @@ fun RecipeDetailBody(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Text(data.recipe.title, style = MaterialTheme.typography.headlineSmall)
+            Text(title, style = MaterialTheme.typography.headlineSmall)
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            if (!data.recipe.description.isNullOrBlank()) {
+            if (!description.isNullOrBlank()) {
                 Spacer(Modifier.height(8.dp))
-                Text(data.recipe.description, style = MaterialTheme.typography.bodyLarge)
+                Text(description, style = MaterialTheme.typography.bodyLarge)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            data.recipe.imageUrl?.let { url ->
+            imageUrl?.let { url ->
                 Spacer(Modifier.height(12.dp))
                 RecipeAsyncImage(
                     model = url,
@@ -158,10 +213,10 @@ fun RecipeDetailBody(
                     Text("No ingredients added.", style = MaterialTheme.typography.bodyMedium)
                 } else {
                     ingredients.forEachIndexed { index, ing ->
-                        IngredientRowItem(
+                        IngredientItemText(
                             index = index + 1,
                             name = ing.name,
-                            quantity = ing.quantity,
+                            quantity = ing.qty,
                             unit = ing.unit
                         )
                         if (index != ingredients.lastIndex) {
@@ -178,9 +233,9 @@ fun RecipeDetailBody(
                     Text("No steps added.", style = MaterialTheme.typography.bodyMedium)
                 } else {
                     steps.forEachIndexed { index, step ->
-                        StepRowItem(
+                        StepItemText(
                             index = index + 1,
-                            instruction = step.instruction
+                            instruction = step
                         )
                         if (index != steps.lastIndex) {
                             Spacer(Modifier.height(12.dp))
@@ -209,7 +264,7 @@ fun SectionCard(
 }
 
 @Composable
-private fun IngredientRowItem(
+private fun IngredientItemText(
     index: Int,
     name: String,
     quantity: String?,
@@ -249,7 +304,7 @@ private fun IngredientRowItem(
 }
 
 @Composable
-private fun StepRowItem(
+private fun StepItemText(
     index: Int,
     instruction: String
 ) {

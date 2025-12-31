@@ -5,27 +5,25 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.di.AppContainer
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-data class RecipeListRowUi(
-    val recipe: RecipeEntity,
-)
-
 data class RecipeListUiState(
-    val rows: List<RecipeListRowUi> = emptyList(),
+    val recipes: List<RecipeEntity> = emptyList(),
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
     val deleteRecipeId: Long? = null,
     val isSyncing: Boolean = false,
     val isCloudSynced: Boolean = false,
     val lastSyncedAt: Long = 0L,
+    val isLoadingData: Boolean = false,
+    val isNavigating: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
     val syncLabel: String
@@ -49,6 +47,8 @@ sealed interface RecipeListEvent {
     object ShareBackup : RecipeListEvent
     object PerformGoogleSignOut : RecipeListEvent
     object LoggedOut : RecipeListEvent
+    data class OnOpenRecipe(val recipeId: Long) : RecipeListEvent
+    data class OnEditRecipe(val recipeId: Long) : RecipeListEvent
     data class Toast(val message: String) : RecipeListEvent
 }
 
@@ -57,36 +57,50 @@ class RecipeListViewModel(
 ) : ViewModel() {
 
     private val repo = container.recipeRepositoryForCurrentUser()
-    val recipes = repo.observeRecipes()
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val _ui = MutableStateFlow(RecipeListUiState())
     val ui: StateFlow<RecipeListUiState> = _ui
 
-    private val _events = MutableSharedFlow<RecipeListEvent>(extraBufferCapacity = 1)
+    private val _events = MutableSharedFlow<RecipeListEvent>(
+        replay = 0,
+        extraBufferCapacity = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     val events = _events.asSharedFlow()
 
     init {
         viewModelScope.launch {
-            recipes.collect { list ->
-                val rows = list.map {
-                    RecipeListRowUi(recipe = it)
+            repo.observeRecipes()
+                .onStart { _ui.update { it.copy(isLoadingData = true) } }
+                .collect { list ->
+                    _ui.update {
+                        it.copy(
+                            recipes = list,
+                            isLoadingData = false
+                        )
+                    }
                 }
-                _ui.update { it.copy(rows = rows) }
-            }
         }
     }
 
+    fun requestEditRecipe(recipeId: Long) {
+        emitIfAllowed(RecipeListEvent.OnEditRecipe(recipeId))
+    }
+
+    fun requestOpenRecipe(recipeId: Long) {
+        emitIfAllowed(RecipeListEvent.OnOpenRecipe(recipeId))
+    }
+
     fun syncNowWithCloud() {
-        _events.tryEmit(RecipeListEvent.SyncNow)
+        emitIfAllowed(RecipeListEvent.SyncNow)
     }
 
     fun backupClicked() {
-        onMenuDismiss(); _events.tryEmit(RecipeListEvent.BackupToDocument)
+        onMenuDismiss(); emitIfAllowed(RecipeListEvent.BackupToDocument)
     }
 
     fun shareClicked() {
-        onMenuDismiss(); _events.tryEmit(RecipeListEvent.ShareBackup)
+        onMenuDismiss(); emitIfAllowed(RecipeListEvent.ShareBackup)
     }
 
     /** Restore persisted last successful sync timestamp (e.g., after app restart). */
@@ -110,12 +124,12 @@ class RecipeListViewModel(
 
     fun confirmLogout() {
         _ui.update { it.copy(showLogoutDialog = false, showMenu = false) }
-        _events.tryEmit(RecipeListEvent.PerformGoogleSignOut)
+        emitIfAllowed(RecipeListEvent.PerformGoogleSignOut)
     }
 
     fun onGoogleSignOutCompleted() {
         container.signOut()
-        _events.tryEmit(RecipeListEvent.LoggedOut)
+        emitIfAllowed(RecipeListEvent.LoggedOut)
     }
 
     fun requestDelete(id: Long) = _ui.update { it.copy(deleteRecipeId = id) }
@@ -124,9 +138,20 @@ class RecipeListViewModel(
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
         _ui.update { it.copy(deleteRecipeId = null) }
+
         viewModelScope.launch {
-            repo.deleteRecipe(id)
-            _events.tryEmit(RecipeListEvent.SyncNow)
+            runCatching {
+                repo.deleteRecipe(id)
+            }.onSuccess {
+                emitIfAllowed(RecipeListEvent.Toast("Recipe deleted"))
+                emitIfAllowed(RecipeListEvent.SyncNow)
+            }.onFailure {
+                emitIfAllowed(
+                    RecipeListEvent.Toast(
+                        it.message ?: "Failed to delete recipe"
+                    )
+                )
+            }
         }
     }
 
@@ -144,7 +169,7 @@ class RecipeListViewModel(
             }.onFailure { it ->
                 _ui.update { it.copy(isSyncing = false, isCloudSynced = false) }
                 val msg = it.message ?: "Sync failed"
-                _events.tryEmit(RecipeListEvent.Toast(msg))
+                emitIfAllowed(RecipeListEvent.Toast(msg))
                 onFailure(msg)
             }
         }
@@ -152,5 +177,19 @@ class RecipeListViewModel(
 
     suspend fun exportedJson(): String {
         return repo.exportAllAsJson()
+    }
+
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
+    private fun emitIfAllowed(event: RecipeListEvent) {
+        if (!_ui.value.isNavigating) {
+            _events.tryEmit(event)
+        }
     }
 }

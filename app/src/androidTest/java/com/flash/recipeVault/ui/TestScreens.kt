@@ -22,12 +22,12 @@ fun RecipeListScreenForTest(
 ) {
     val context = ApplicationProvider.getApplicationContext<android.content.Context>()
     val vm = remember { RecipeListViewModel(container = AppContainer(context)) }
-    val recipes by vm.recipes.collectAsState()
+    val ui = vm.ui.collectAsState()
 
     Scaffold(
         topBar = { TopAppBar(title = { Text("Recipes") }) }
     ) { padding ->
-        if (recipes.isEmpty()) {
+        if (ui.value.recipes.isEmpty()) {
             androidx.compose.foundation.layout.Box(
                 modifier = Modifier
                     .padding(padding)

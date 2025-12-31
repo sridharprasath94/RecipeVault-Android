@@ -11,18 +11,17 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface EditRecipeEvent {
     data class Toast(val message: String) : EditRecipeEvent
+    object OnBackClicked : EditRecipeEvent
     object OnFinishedSaving : EditRecipeEvent
 }
 
@@ -33,8 +32,10 @@ data class EditRecipeUiState(
     val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
+    val suggestions: SuggestionsUi = SuggestionsUi(),
     val isLoadingData: Boolean = false,
     val isSaving: Boolean = false,
+    val isNavigating: Boolean = false,
 )
 
 
@@ -46,8 +47,7 @@ class EditRecipeViewModel(
     private val suggestionsRepo = container.suggestionsRepositoryForCurrentUser()
     private val _ui = MutableStateFlow(EditRecipeUiState())
     val ui: StateFlow<EditRecipeUiState> = _ui
-    val recipe = recipeRepository.observeRecipe(recipeId)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     private val _events = MutableSharedFlow<EditRecipeEvent>(
         replay = 0,
         extraBufferCapacity = 1,
@@ -55,32 +55,37 @@ class EditRecipeViewModel(
     )
     val events: SharedFlow<EditRecipeEvent> = _events.asSharedFlow()
 
-    val suggestions: StateFlow<SuggestionsUi> =
-        combine(
-            suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
-            suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
-            suggestionsRepo.observeAllMerged(SuggestionType.STEP),
-        ) { ing, unit, step ->
-            SuggestionsUi(
-                ingredients = ing,
-                units = unit,
-                steps = step
-            )
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = SuggestionsUi()
-        )
-
-
     init {
-        _ui.update { it.copy(isLoadingData = true) }
+        // Observe recipe
         viewModelScope.launch {
-            val recipe = recipeRepository.observeRecipe(recipeId)
+            recipeRepository.observeRecipe(recipeId)
+                .onStart { _ui.update { it.copy(isLoadingData = true) } }
                 .filterNotNull()
-                .first()
+                .collect { recipe ->
+                    _ui.update {
+                        mapRecipeToUi(recipe).copy(
+                            suggestions = it.suggestions, // preserve suggestions
+                            isLoadingData = false
+                        )
+                    }
+                }
+        }
 
-            _ui.value = mapRecipeToUi(recipe).copy(isLoadingData = false)
+        // Observe suggestions
+        viewModelScope.launch {
+            combine(
+                suggestionsRepo.observeAllMerged(SuggestionType.INGREDIENT),
+                suggestionsRepo.observeAllMerged(SuggestionType.UNIT),
+                suggestionsRepo.observeAllMerged(SuggestionType.STEP),
+            ) { ing, unit, step ->
+                SuggestionsUi(
+                    ingredients = ing,
+                    units = unit,
+                    steps = step
+                )
+            }.collect { suggestions ->
+                _ui.update { it.copy(suggestions = suggestions) }
+            }
         }
     }
 
@@ -178,6 +183,7 @@ class EditRecipeViewModel(
         }
     }
 
+    fun requestBack() = emitIfAllowed(EditRecipeEvent.OnBackClicked)
 
     private fun validate(
         title: String,
@@ -200,8 +206,6 @@ class EditRecipeViewModel(
 
 
     fun save() {
-        if(_ui.value.isSaving) return
-        _ui.update { it.copy(isSaving = true) }
         val state = ui.value
         val cleanTitle = state.title.trim()
         val cleanDesc = state.description.trim()
@@ -223,9 +227,10 @@ class EditRecipeViewModel(
             toast(error)
             return
         }
-
+        if (_ui.value.isSaving) return
         viewModelScope.launch {
             try {
+                _ui.update { it.copy(isSaving = true) }
                 recipeRepository.updateRecipe(
                     recipeId,
                     title = cleanTitle,
@@ -260,10 +265,24 @@ class EditRecipeViewModel(
     }
 
     private fun onFinishedSaving() {
-        _events.tryEmit(EditRecipeEvent.OnFinishedSaving)
+        emitIfAllowed(EditRecipeEvent.OnFinishedSaving)
     }
 
     private fun toast(message: String) {
-        _events.tryEmit(EditRecipeEvent.Toast(message))
+        emitIfAllowed(EditRecipeEvent.Toast(message))
+    }
+
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
+    private fun emitIfAllowed(event: EditRecipeEvent) {
+        if (!_ui.value.isNavigating) {
+            _events.tryEmit(event)
+        }
     }
 }
