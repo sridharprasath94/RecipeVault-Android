@@ -43,7 +43,6 @@ data class AuthFormUiState(
 class AuthViewModel(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : ViewModel() {
-
     private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
     val state: StateFlow<AuthState> = _state
 
@@ -57,8 +56,27 @@ class AuthViewModel(
     )
     val events: SharedFlow<AuthEvent> = _events.asSharedFlow()
 
-    // Cache last known logged-in user to avoid re-emitting navigation repeatedly
-    private var cachedUid: String? = null
+    private val authListener = FirebaseAuth.AuthStateListener { updateAuthState() }
+
+    init {
+       updateAuthState()
+        auth.addAuthStateListener(authListener)
+    }
+
+    override fun onCleared() {
+        auth.removeAuthStateListener(authListener)
+        super.onCleared()
+    }
+
+    private fun updateAuthState() {
+        val user = auth.currentUser
+        _state.update {
+            user?.let {
+                AuthState.LoggedIn(it.uid, it.email) }
+                ?: AuthState.LoggedOut
+        }
+        user?.let {  emitIfAllowed(AuthEvent.NavigateLoggedIn) }
+    }
 
     fun onEmailChange(v: String) {
         _ui.value = _ui.value.copy(email = v)
@@ -68,39 +86,6 @@ class AuthViewModel(
         _ui.value = _ui.value.copy(password = v)
     }
 
-    private val authListener = FirebaseAuth.AuthStateListener { refresh() }
-
-    init {
-        refresh()
-        auth.addAuthStateListener(authListener)
-    }
-
-    override fun onCleared() {
-        auth.removeAuthStateListener(authListener)
-        super.onCleared()
-    }
-
-    private fun refresh() {
-        val user = auth.currentUser
-
-        if (user == null) {
-            cachedUid = null
-            _state.value = AuthState.LoggedOut
-            return
-        }
-
-        val newUid = user.uid
-        val newEmail = user.email
-        val wasLoggedIn = cachedUid != null
-        val uidChanged = cachedUid != newUid
-
-        cachedUid = newUid
-        _state.value = AuthState.LoggedIn(newUid, newEmail)
-
-        if (!wasLoggedIn || uidChanged) {
-            emitIfAllowed(AuthEvent.NavigateLoggedIn)
-        }
-    }
 
     fun signIn(email: String, password: String) = viewModelScope.launch {
         val cleanEmail = email.trim()
@@ -114,7 +99,6 @@ class AuthViewModel(
         try {
             _state.value = AuthState.Loading
             auth.signInWithEmailAndPassword(cleanEmail, cleanPass).await()
-            refresh()
         } catch (e: Exception) {
             toast(e.message ?: "Sign-in failed")
         }
@@ -132,7 +116,6 @@ class AuthViewModel(
         try {
             _state.value = AuthState.Loading
             auth.createUserWithEmailAndPassword(cleanEmail, cleanPass).await()
-            refresh()
         } catch (e: Exception) {
             toast(e.message ?: "Sign-up failed")
         }
@@ -147,8 +130,6 @@ class AuthViewModel(
             _state.value = AuthState.Loading
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
-            Log.d("AuthViewModel", "Google sign-in successful")
-            refresh()
         } catch (e: Exception) {
             Log.e("AuthViewModel", "Google sign-in failed", e)
             toast(e.message ?: "Google sign-in failed")
