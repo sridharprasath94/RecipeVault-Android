@@ -100,7 +100,7 @@ fun EditRecipeScreenPreview() {
             isLoadingData = false
         ),
         suggestions = previewSuggestions(),
-        isFinishing = false,
+        isNavigating = false,
         onBack = {},
         onSave = {},
         onTitleChange = {},

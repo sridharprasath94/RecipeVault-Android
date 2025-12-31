@@ -33,9 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -58,11 +55,10 @@ fun RecipeDetailScreen(
 ) {
     val context = LocalContext.current
     val ui by vm.ui.collectAsState()
-    var isFinishing by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            isFinishing = false
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            vm.onScreenVisible()
         }
     }
 
@@ -70,25 +66,21 @@ fun RecipeDetailScreen(
         vm.events.collectLatest { event ->
             when (event) {
                 is RecipeDetailEvent.Deleted -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onBack()
                 }
 
                 is RecipeDetailEvent.Toast -> {
-                    if (isFinishing) return@collectLatest
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }
 
                 is RecipeDetailEvent.OnEditClicked -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onEdit(event.recipeId)
                 }
 
                 RecipeDetailEvent.OnBackClicked -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onBack()
                 }
             }
@@ -106,7 +98,7 @@ fun RecipeDetailScreen(
 
     RecipeDetailContent(
         ui = ui,
-        isFinishing = isFinishing,
+        isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onEdit = vm::requestEdit,
         onDelete = vm::requestDelete
@@ -117,12 +109,12 @@ fun RecipeDetailScreen(
 @Composable
 fun RecipeDetailContent(
     ui: RecipeDetailUiState,
-    isFinishing: Boolean,
+    isNavigating: Boolean,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val isInteractionEnabled = !ui.isLoadingData && !isFinishing
+    val isInteractionEnabled = !ui.isLoadingData && !isNavigating
     Scaffold(
         topBar = {
             Box {

@@ -31,9 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,11 +54,11 @@ import kotlinx.coroutines.flow.collectLatest
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
-    authVm: AuthViewModel,
+    vm: AuthViewModel,
     onLoggedIn: () -> Unit
 ) {
-    val state by authVm.state.collectAsState()
-    val form by authVm.form.collectAsState()
+    val state by vm.state.collectAsState()
+    val ui by vm.ui.collectAsState()
     val context = LocalContext.current
 
     // Requires a real google-services.json to generate R.string.default_web_client_id
@@ -71,28 +69,25 @@ fun AuthScreen(
     val googleLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        authVm.onGoogleResult(result.resultCode, result.data)
+        vm.onGoogleResult(result.resultCode, result.data)
     }
 
-    var isFinishing by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            isFinishing = false
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            vm.onScreenVisible()
         }
     }
 
     LaunchedEffect(Unit) {
-        authVm.events.collectLatest { event ->
+        vm.events.collectLatest { event ->
             when (event) {
                 is AuthEvent.Toast -> {
-                    if (isFinishing) return@collectLatest
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }
 
                 AuthEvent.NavigateLoggedIn -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onLoggedIn()
                 }
 
@@ -106,17 +101,17 @@ fun AuthScreen(
         Box(modifier = Modifier.fillMaxSize()) {
             AuthFormContent(
                 padding = padding,
-                email = form.email,
-                onEmailChange = authVm::onEmailChange,
-                password = form.password,
-                onPasswordChange = authVm::onPasswordChange,
+                email = ui.email,
+                onEmailChange = vm::onEmailChange,
+                password = ui.password,
+                onPasswordChange = vm::onPasswordChange,
                 state = state,
-                onSignIn = authVm::submitSignIn,
-                onSignUp = authVm::submitSignUp,
-                onGoogleSignIn = { authVm.onGoogleSignInClicked(webClientId) }
+                onSignIn = vm::submitSignIn,
+                onSignUp = vm::submitSignUp,
+                onGoogleSignIn = { vm.onGoogleSignInClicked(webClientId) }
             )
 
-            if (isFinishing) {
+            if (ui.isNavigating) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

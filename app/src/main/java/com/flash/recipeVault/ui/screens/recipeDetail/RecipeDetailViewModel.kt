@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeWithDetails
 import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
+import com.flash.recipeVault.ui.screens.recipeList.RecipeListEvent
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +25,7 @@ data class RecipeDetailUiState(
     val steps: List<String> = listOf(""),
     val isLoadingData: Boolean = false,
     val deleteRecipeId: Long? = null,
+    val isNavigating: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
 }
@@ -84,8 +86,8 @@ class RecipeDetailViewModel(
         )
     }
 
-    fun requestBack() = _events.tryEmit(RecipeDetailEvent.OnBackClicked)
-    fun requestEdit() = _events.tryEmit(RecipeDetailEvent.OnEditClicked(recipeId))
+    fun requestBack() = emitIfAllowed(RecipeDetailEvent.OnBackClicked)
+    fun requestEdit() = emitIfAllowed(RecipeDetailEvent.OnEditClicked(recipeId))
     fun requestDelete() = _ui.update { it.copy(deleteRecipeId = recipeId) }
     fun dismissDelete() = _ui.update { it.copy(deleteRecipeId = null) }
 
@@ -97,15 +99,29 @@ class RecipeDetailViewModel(
             runCatching {
                 repo.deleteRecipe(id)
             }.onSuccess {
-                _events.emit(RecipeDetailEvent.Toast("Recipe deleted"))
-                _events.emit(RecipeDetailEvent.Deleted)
+                emitIfAllowed(RecipeDetailEvent.Toast("Recipe deleted"))
+                emitIfAllowed(RecipeDetailEvent.Deleted)
             }.onFailure {
-                _events.emit(
+                emitIfAllowed(
                     RecipeDetailEvent.Toast(
                         it.message ?: "Failed to delete recipe"
                     )
                 )
             }
+        }
+    }
+
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
+    private fun emitIfAllowed(event: RecipeDetailEvent) {
+        if (!_ui.value.isNavigating) {
+            emitIfAllowed(event)
         }
     }
 }

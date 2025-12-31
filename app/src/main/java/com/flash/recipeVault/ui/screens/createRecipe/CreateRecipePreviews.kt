@@ -95,7 +95,7 @@ fun CreateRecipeScreenPreview() {
             isSaving = false,
         ),
         suggestions = previewSuggestions(),
-        isFinishing = false,
+        isNavigating = false,
         onBack = {},
         onSave = {},
         onTitleChange = {},

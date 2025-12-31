@@ -100,14 +100,6 @@ class RecipeListViewModel(
         onMenuDismiss(); emitIfAllowed(RecipeListEvent.ShareBackup)
     }
 
-    fun startNavigation() {
-        _ui.update { it.copy(isNavigating = true) }
-    }
-
-    fun onScreenVisible() {
-        _ui.update { it.copy(isNavigating = false) }
-    }
-
     /** Restore persisted last successful sync timestamp (e.g., after app restart). */
     fun restoreCloudStatus(isCloudSynced: Boolean, lastSyncedAt: Long) {
         val validSynced = isCloudSynced && lastSyncedAt > 0L
@@ -184,9 +176,17 @@ class RecipeListViewModel(
         return repo.exportAllAsJson()
     }
 
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
     private fun emitIfAllowed(event: RecipeListEvent) {
         if (!_ui.value.isNavigating) {
-            _events.tryEmit(event)
+            emitIfAllowed(event)
         }
     }
 }

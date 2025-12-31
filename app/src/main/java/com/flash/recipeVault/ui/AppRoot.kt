@@ -62,7 +62,7 @@ fun AppRoot(container: AppContainer) {
         ) {
             composable(Routes.AUTH) {
                 AuthScreen(
-                    authVm = authVm,
+                    vm = authVm,
                     onLoggedIn = {
                         nav.navigate(Routes.LIST) {
                             popUpTo(Routes.AUTH) {

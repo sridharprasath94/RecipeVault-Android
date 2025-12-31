@@ -17,10 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -54,11 +51,10 @@ fun CreateRecipeScreen(
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
-    var isFinishing by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            isFinishing = false
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            vm.onScreenVisible()
         }
     }
 
@@ -66,19 +62,16 @@ fun CreateRecipeScreen(
         vm.events.collectLatest { event ->
             when (event) {
                 is CreateRecipeEvent.Toast -> {
-                    if (isFinishing) return@collectLatest
                     Toast.makeText(context, event.message, Toast.LENGTH_LONG).show()
                 }
 
                 is CreateRecipeEvent.OnFinishedSaving -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onCreated(event.id)
                 }
 
                 CreateRecipeEvent.OnBackClicked -> {
-                    if (isFinishing) return@collectLatest
-                    isFinishing = true
+                    vm.startNavigation()
                     onBack()
                 }
             }
@@ -88,7 +81,7 @@ fun CreateRecipeScreen(
     CreateRecipeContent(
         ui = ui,
         suggestions = suggestions,
-        isFinishing = isFinishing,
+        isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onSave = {
             keyboardController?.hide()
@@ -128,7 +121,7 @@ fun CreateRecipeScreen(
 fun CreateRecipeContent(
     ui: CreateRecipeUiState,
     suggestions: SuggestionsUi,
-    isFinishing: Boolean,
+    isNavigating: Boolean,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onTitleChange: (String) -> Unit,
@@ -143,7 +136,7 @@ fun CreateRecipeContent(
     onStepAdd: () -> Unit,
 ) {
     val imePadding = rememberAnimatedImeBottomPadding()
-    val isInteractionEnabled = !ui.isSaving && !isFinishing
+    val isInteractionEnabled = !ui.isSaving && !isNavigating
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
         topBar = {

@@ -7,6 +7,7 @@ import com.flash.recipeVault.di.AppContainer
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.model.SuggestionsUi
 import com.flash.recipeVault.ui.screens.recipeDetail.RecipeDetailEvent
+import com.flash.recipeVault.ui.screens.recipeList.RecipeListEvent
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ data class CreateRecipeUiState(
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
     val isSaving: Boolean = false,
+    val isNavigating: Boolean = false,
 )
 
 class CreateRecipeViewModel(
@@ -135,7 +137,7 @@ class CreateRecipeViewModel(
         }
     }
 
-    fun requestBack() = _events.tryEmit(CreateRecipeEvent.OnBackClicked)
+    fun requestBack() = emitIfAllowed(CreateRecipeEvent.OnBackClicked)
 
     private fun validate(
         title: String,
@@ -214,11 +216,24 @@ class CreateRecipeViewModel(
     }
 
     private fun onFinishedSaving(id: Long) {
-        _events.tryEmit(CreateRecipeEvent.OnFinishedSaving(id))
+        emitIfAllowed(CreateRecipeEvent.OnFinishedSaving(id))
     }
 
     private fun toast(message: String) {
-        _events.tryEmit(CreateRecipeEvent.Toast(message))
+        emitIfAllowed(CreateRecipeEvent.Toast(message))
     }
 
+    fun startNavigation() {
+        _ui.update { it.copy(isNavigating = true) }
+    }
+
+    fun onScreenVisible() {
+        _ui.update { it.copy(isNavigating = false) }
+    }
+
+    private fun emitIfAllowed(event: CreateRecipeEvent) {
+        if (!_ui.value.isNavigating) {
+            emitIfAllowed(event)
+        }
+    }
 }
