@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.data.RecipeEntity
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 private fun previewRecipes(): List<RecipeEntity> = listOf(
     RecipeEntity(
@@ -33,6 +34,30 @@ private fun previewRecipes(): List<RecipeEntity> = listOf(
         updatedAt = 0L,
     ),
 )
+
+private fun fakeRecipeListUiState(
+    recipes: List<RecipeEntity> = previewRecipes(),
+    showMenu: Boolean = false,
+    showLogoutDialog: Boolean = false,
+    deleteRecipeId: Long? = null,
+    isSyncing: Boolean = false,
+    isCloudSynced: Boolean = true,
+    lastSyncedAt: Long = System.currentTimeMillis(),
+    isLoadingData: Boolean = false,
+    isNavigating: Boolean = false,
+): RecipeListUiState {
+    return RecipeListUiState(
+        recipes = recipes,
+        showMenu = showMenu,
+        showLogoutDialog = showLogoutDialog,
+        deleteRecipeId = deleteRecipeId,
+        isSyncing = isSyncing,
+        isCloudSynced = isCloudSynced,
+        lastSyncedAt = lastSyncedAt,
+        isLoadingData = isLoadingData,
+        isNavigating = isNavigating,
+    )
+}
 
 
 @Preview(name = "List - Empty State", showBackground = true, widthDp = 360, heightDp = 720)
@@ -105,4 +130,82 @@ private fun RecipeListDialogsPreview_Delete() {
         onDismissDelete = {},
         onConfirmDelete = {},
     )
+}
+
+@Preview(
+    name = "Recipe List – Normal",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720
+)
+@Composable
+private fun RecipeListPreview_Normal() {
+    RecipeVaultTheme {
+        RecipeListContent(
+            ui = fakeRecipeListUiState(),
+            onAdd = {},
+            onMenuToggle = {},
+            onMenuDismiss = {},
+            onSyncNow = {},
+            onBackup = {},
+            onShare = {},
+            onLogout = {},
+            onOpenRecipe = {},
+            onEditRecipe = {},
+            onDeleteRecipe = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Recipe List – Menu Open",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720
+)
+@Composable
+private fun RecipeListPreview_MenuOpen() {
+    RecipeVaultTheme {
+        RecipeListContent(
+            ui = fakeRecipeListUiState(showMenu = true),
+            onAdd = {},
+            onMenuToggle = {},
+            onMenuDismiss = {},
+            onSyncNow = {},
+            onBackup = {},
+            onShare = {},
+            onLogout = {},
+            onOpenRecipe = {},
+            onEditRecipe = {},
+            onDeleteRecipe = {}
+        )
+    }
+}
+
+@Preview(
+    name = "Recipe List – Loading",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720
+)
+@Composable
+private fun RecipeListPreview_Loading() {
+    RecipeVaultTheme {
+        RecipeListContent(
+            ui = fakeRecipeListUiState(
+                recipes = emptyList(),
+                isLoadingData = true
+            ),
+            onAdd = {},
+            onMenuToggle = {},
+            onMenuDismiss = {},
+            onSyncNow = {},
+            onBackup = {},
+            onShare = {},
+            onLogout = {},
+            onOpenRecipe = {},
+            onEditRecipe = {},
+            onDeleteRecipe = {}
+        )
+    }
 }

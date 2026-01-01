@@ -216,7 +216,39 @@ fun RecipeListScreen(
         onDismissDelete = vm::dismissDelete,
         onConfirmDelete = vm::confirmDelete,
     )
+
+    RecipeListContent(
+        ui = ui,
+        onAdd = onAdd,
+        onMenuToggle = vm::onMenuToggle,
+        onMenuDismiss = vm::onMenuDismiss,
+        onSyncNow = vm::syncNowWithCloud,
+        onBackup = vm::backupClicked,
+        onShare = vm::shareClicked,
+        onLogout = vm::requestLogout,
+        onOpenRecipe = vm::requestOpenRecipe,
+        onEditRecipe = vm::requestEditRecipe,
+        onDeleteRecipe = vm::requestDelete
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecipeListContent(
+    ui: RecipeListUiState,
+    onAdd: () -> Unit,
+    onMenuToggle: () -> Unit,
+    onMenuDismiss: () -> Unit,
+    onSyncNow: () -> Unit,
+    onBackup: () -> Unit,
+    onShare: () -> Unit,
+    onLogout: () -> Unit,
+    onOpenRecipe: (Long) -> Unit,
+    onEditRecipe: (Long) -> Unit,
+    onDeleteRecipe: (Long) -> Unit,
+) {
     val isInteractionEnabled = !ui.isLoadingData && !ui.isNavigating
+
     Scaffold(
         topBar = {
             Box {
@@ -224,13 +256,16 @@ fun RecipeListScreen(
                     title = { Text("Recipes") },
                     actions = {
                         if (isInteractionEnabled) {
-                            IconButton(onClick = vm::onMenuToggle) {
-                                Icon(Icons.Default.MoreVert, contentDescription = "Menu")
+                            IconButton(onClick = onMenuToggle) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = "Menu"
+                                )
                             }
 
                             DropdownMenu(
                                 expanded = ui.showMenu,
-                                onDismissRequest = vm::onMenuDismiss
+                                onDismissRequest = onMenuDismiss
                             ) {
                                 DropdownMenuItem(
                                     text = {
@@ -243,7 +278,7 @@ fun RecipeListScreen(
                                             )
                                         }
                                     },
-                                    onClick = vm::syncNowWithCloud,
+                                    onClick = onSyncNow,
                                     trailingIcon = {
                                         Box(
                                             modifier = Modifier
@@ -252,7 +287,7 @@ fun RecipeListScreen(
                                         ) {
                                             SyncStatusIcon(
                                                 isSyncing = ui.isSyncing,
-                                                isCloudSynced = ui.isCloudSynced,
+                                                isCloudSynced = ui.isCloudSynced
                                             )
                                         }
                                     }
@@ -260,29 +295,29 @@ fun RecipeListScreen(
 
                                 DropdownMenuItem(
                                     text = { Text("Backup") },
-                                    onClick = vm::backupClicked
+                                    onClick = onBackup
                                 )
 
                                 DropdownMenuItem(
                                     text = { Text("Share") },
-                                    onClick = vm::shareClicked
+                                    onClick = onShare
                                 )
 
                                 DropdownMenuItem(
                                     text = { Text("Log out") },
-                                    onClick = vm::requestLogout
+                                    onClick = onLogout
                                 )
                             }
                         }
                     }
-
                 )
 
+                // 🔒 Top-bar interaction blocker
                 if (!isInteractionEnabled) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .pointerInput(Unit) { /* consume all touches */ }
+                            .pointerInput(Unit) {}
                     )
                 }
             }
@@ -293,18 +328,19 @@ fun RecipeListScreen(
                     Icon(Icons.Default.Add, contentDescription = "Add")
                 }
             }
-
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize()) {
+
             RecipeListBody(
                 padding = padding,
                 recipes = ui.recipes,
-                onOpen = vm::requestOpenRecipe,
-                onEdit = vm::requestEditRecipe,
-                onDeleteClick = vm::requestDelete
+                onOpen = onOpenRecipe,
+                onEdit = onEditRecipe,
+                onDeleteClick = onDeleteRecipe
             )
 
+            // 🔒 Full-screen interaction blocker
             if (!isInteractionEnabled) {
                 Box(
                     modifier = Modifier

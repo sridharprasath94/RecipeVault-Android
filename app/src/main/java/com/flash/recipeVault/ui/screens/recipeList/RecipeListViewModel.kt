@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class RecipeListUiState(
-    val currentUserUid: String =  FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous",
+    val currentUserUid: String? = null,
     val recipes: List<RecipeEntity> = emptyList(),
     val showMenu: Boolean = false,
     val showLogoutDialog: Boolean = false,
@@ -72,6 +72,11 @@ class RecipeListViewModel(
     val events = _events.asSharedFlow()
 
     init {
+        _ui.update {
+            it.copy(
+                currentUserUid = FirebaseAuth.getInstance().currentUser?.uid ?: "anonymous"
+            )
+        }
         viewModelScope.launch {
             repo.observeRecipes()
                 .onStart { _ui.update { it.copy(isLoadingData = true) } }
