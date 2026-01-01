@@ -155,12 +155,11 @@ class RecipeListViewModel(
 
     fun confirmDelete() {
         val id = _ui.value.deleteRecipeId ?: return
-        _ui.update { it.copy(deleteRecipeId = null) }
-
         viewModelScope.launch {
             runCatching {
                 repo.deleteRecipe(id)
             }.onSuccess {
+                _ui.update { it.copy(deleteRecipeId = null) }
                 emitIfAllowed(RecipeListEvent.Toast("Recipe deleted"))
                 emitIfAllowed(RecipeListEvent.SyncNow)
             }.onFailure {
