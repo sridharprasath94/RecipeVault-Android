@@ -37,7 +37,6 @@ fun RecipeDetailContentPreview() {
     MaterialTheme {
         RecipeDetailContent(
             ui = previewRecipeDetailUi(),
-            isNavigating = false,
             onBack = {},
             onEdit = {},
             onDelete = {}
@@ -56,7 +55,6 @@ fun RecipeDetailContentLoadingPreview() {
     MaterialTheme {
         RecipeDetailContent(
             ui = previewRecipeDetailUi().copy(isLoadingData = true),
-            isNavigating = false,
             onBack = {},
             onEdit = {},
             onDelete = {}
@@ -74,8 +72,7 @@ fun RecipeDetailContentLoadingPreview() {
 fun RecipeDetailContentFinishingPreview() {
     MaterialTheme {
         RecipeDetailContent(
-            ui = previewRecipeDetailUi(),
-            isNavigating = true,
+            ui = previewRecipeDetailUi().copy(isNavigating = true),
             onBack = {},
             onEdit = {},
             onDelete = {}
