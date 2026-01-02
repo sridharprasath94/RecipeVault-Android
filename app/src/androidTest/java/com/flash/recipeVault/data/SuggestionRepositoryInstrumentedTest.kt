@@ -2,7 +2,6 @@ package com.flash.recipeVault.data
 
 import android.content.Context
 import androidx.room.Room
-import androidx.room.util.query
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.flow.first
