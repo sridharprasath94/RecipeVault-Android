@@ -1,5 +1,6 @@
 package com.flash.recipeVault.ui.screens.auth
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -25,7 +26,7 @@ private fun previewAuthFormUiState(authState: AuthState = AuthState.LoggedOut): 
 @Preview(
     name = "Auth Form - Logged Out - Dark",
     showBackground = true, widthDp = 360, heightDp = 720,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 fun AuthFormContentPreviewLoggedOut() {
@@ -45,7 +46,7 @@ fun AuthFormContentPreviewLoggedOut() {
 @Preview(
     name = "Auth Form - Loading - Dark",
     showBackground = true, widthDp = 360, heightDp = 720,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 fun AuthFormContentPreviewLoading() {
@@ -65,13 +66,18 @@ fun AuthFormContentPreviewLoading() {
 @Preview(
     name = "Auth Form - Logged In - Dark",
     showBackground = true, widthDp = 360, heightDp = 720,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 fun AuthFormContentPreviewLoggedIn() {
     RecipeVaultTheme {
         AuthFormContent(
-            ui = previewAuthFormUiState(authState = AuthState.LoggedIn("userId123", "abc-user@gmail.com")),
+            ui = previewAuthFormUiState(
+                authState = AuthState.LoggedIn(
+                    "userId123",
+                    "abc-user@gmail.com"
+                )
+            ),
             onEmailChange = {},
             onPasswordChange = {},
             onSignIn = {},
@@ -82,25 +88,37 @@ fun AuthFormContentPreviewLoggedIn() {
 }
 
 @Preview(name = "Email Field", showBackground = true)
+@Preview(
+    name = "Email Field - Dark", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 fun StandardTextFieldEmailPreview() {
-    StandardTextField(
-        value = "user@example.com",
-        onValueChange = {},
-        label = "Email",
-        keyboardType = KeyboardType.Email,
-        modifier = Modifier.fillMaxWidth()
-    )
+    RecipeVaultTheme {
+        StandardTextField(
+            value = "user@example.com",
+            onValueChange = {},
+            label = "Email",
+            keyboardType = KeyboardType.Email,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
 
 @Preview(name = "Password Field", showBackground = true)
+@Preview(
+    name = "Password Field - Dark", showBackground = true,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 fun StandardTextFieldPasswordPreview() {
-    StandardTextField(
-        value = "password",
-        onValueChange = {},
-        label = "Password",
-        visualTransformation = PasswordVisualTransformation(),
-        modifier = Modifier.fillMaxWidth()
-    )
+    RecipeVaultTheme {
+        StandardTextField(
+            value = "password",
+            onValueChange = {},
+            label = "Password",
+            visualTransformation = PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
 }
