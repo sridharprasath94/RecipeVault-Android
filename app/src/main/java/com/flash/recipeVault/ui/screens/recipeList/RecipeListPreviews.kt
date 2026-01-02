@@ -1,9 +1,8 @@
 package com.flash.recipeVault.ui.screens.recipeList
 
-import androidx.compose.foundation.layout.PaddingValues
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
@@ -59,87 +58,21 @@ private fun fakeRecipeListUiState(
     )
 }
 
-
-@Preview(name = "List - Empty State", showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-private fun RecipeListBodyPreview_Empty() {
-    RecipeListBody(
-        padding = PaddingValues(0.dp),
-        recipes = emptyList(),
-        onOpen = {},
-        onEdit = {},
-        onDeleteClick = {},
-    )
-}
-
-@Preview(name = "List - With Items", showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-private fun RecipeListBodyPreview_List() {
-    RecipeListBody(
-        padding = PaddingValues(0.dp),
-        recipes = emptyList(),
-        onOpen = {},
-        onEdit = {},
-        onDeleteClick = {},
-    )
-}
-
-@Preview(name = "Item - With Description", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListItemPreview_WithDescription() {
-    RecipeListItem(
-        recipe = previewRecipes().first(),
-        onOpen = {},
-        onEdit = {},
-        onDeleteClick = {},
-    )
-}
-
-@Preview(name = "Item - No Description", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListItemPreview_NoDescription() {
-    RecipeListItem(
-        recipe = previewRecipes().first(),
-        onOpen = {},
-        onEdit = {},
-        onDeleteClick = {},
-    )
-}
-
-@Preview(name = "Dialog - Logout", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListDialogsPreview_Logout() {
-    RecipeListDialogs(
-        showLogoutDialog = true,
-        onDismissLogout = {},
-        onConfirmLogout = {},
-        showDeleteDialog = false,
-        onDismissDelete = {},
-        onConfirmDelete = {},
-    )
-}
-
-@Preview(name = "Dialog - Delete", showBackground = true, widthDp = 360)
-@Composable
-private fun RecipeListDialogsPreview_Delete() {
-    RecipeListDialogs(
-        showLogoutDialog = false,
-        onDismissLogout = {},
-        onConfirmLogout = {},
-        showDeleteDialog = true,
-        onDismissDelete = {},
-        onConfirmDelete = {},
-    )
-}
-
 @Preview(
-    name = "Recipe List – Normal",
+    name = "Recipe List Content",
     showBackground = true,
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe List Content – Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
-private fun RecipeListPreview_Normal() {
+private fun RecipeListContentPreview() {
     RecipeVaultTheme {
         RecipeListContent(
             ui = fakeRecipeListUiState(),
@@ -163,8 +96,15 @@ private fun RecipeListPreview_Normal() {
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe List – Menu Open - Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
-private fun RecipeListPreview_MenuOpen() {
+private fun RecipeListMenuOpenPreview() {
     RecipeVaultTheme {
         RecipeListContent(
             ui = fakeRecipeListUiState(showMenu = true),
@@ -188,12 +128,18 @@ private fun RecipeListPreview_MenuOpen() {
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe List – Loading - Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
-private fun RecipeListPreview_Loading() {
+private fun RecipeListLoadingPreview() {
     RecipeVaultTheme {
         RecipeListContent(
             ui = fakeRecipeListUiState(
-                recipes = emptyList(),
                 isLoadingData = true
             ),
             onAdd = {},
@@ -206,6 +152,49 @@ private fun RecipeListPreview_Loading() {
             onOpenRecipe = {},
             onEditRecipe = {},
             onDeleteRecipe = {}
+        )
+    }
+}
+
+
+@Preview(name = "Dialog - Logout", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Dialog - Logout - Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun RecipeListDialogsLogoutPreview() {
+    RecipeVaultTheme {
+        RecipeListDialogs(
+            showLogoutDialog = true,
+            onDismissLogout = {},
+            onConfirmLogout = {},
+            showDeleteDialog = false,
+            onDismissDelete = {},
+            onConfirmDelete = {},
+        )
+    }
+}
+
+@Preview(name = "Dialog - Delete", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Dialog - Delete - Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
+@Composable
+private fun RecipeListDialogsDeletePreview() {
+    RecipeVaultTheme {
+        RecipeListDialogs(
+            showLogoutDialog = false,
+            onDismissLogout = {},
+            onConfirmLogout = {},
+            showDeleteDialog = true,
+            onDismissDelete = {},
+            onConfirmDelete = {},
         )
     }
 }

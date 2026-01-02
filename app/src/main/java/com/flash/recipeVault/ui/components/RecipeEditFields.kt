@@ -1,5 +1,6 @@
 package com.flash.recipeVault.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -42,6 +43,12 @@ fun RecipeEditFields(
 
 
 @Preview(name = "Recipe Edit Fields", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Recipe Edit Fields - Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeBasicFieldsPreview() {
     RecipeVaultTheme {
@@ -55,6 +62,12 @@ private fun RecipeBasicFieldsPreview() {
 }
 
 @Preview(name = "Recipe Edit Fields - Empty", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Recipe Edit Fields - Empty Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeBasicFieldsEmptyPreview() {
     RecipeVaultTheme {

@@ -2,6 +2,7 @@ package com.flash.recipeVault.ui.components
 
 import MatchMode
 import SuggestionAutoCompleteField
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -300,6 +301,12 @@ fun RecipeForm(
 }
 
 @Preview(name = "Ingredient Item Preview", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Ingredient Item Preview Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun IngredientFormFieldPreview() {
     RecipeVaultTheme {
@@ -318,6 +325,12 @@ private fun IngredientFormFieldPreview() {
 }
 
 @Preview(name = "Step Item Row Preview", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Step Item Row Preview Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun StepFormFieldPreview() {
     RecipeVaultTheme {
@@ -333,6 +346,13 @@ private fun StepFormFieldPreview() {
 
 
 @Preview(name = "Recipe Form Preview", showBackground = true, widthDp = 360, heightDp = 800)
+@Preview(
+    name = "Recipe Form Preview Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 800,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeFormPreview() {
     RecipeVaultTheme {
