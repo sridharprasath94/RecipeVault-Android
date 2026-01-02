@@ -61,7 +61,7 @@ private fun fakeCreateRecipeUiState(
 fun CreateRecipeContentLoadedPreview() {
     RecipeVaultTheme {
         CreateRecipeContent(
-            ui = fakeCreateRecipeUiState(),
+            ui = fakeCreateRecipeUiState(pickedImageUrl = "content://sample-image-uri"),
             onBack = {},
             onSave = {},
             onTitleChange = {},
@@ -145,22 +145,22 @@ fun CreateRecipeContentEmptyIngredientsAndStepsPreview() {
 }
 
 @Preview(
-    name = "Create Recipe Content With Picked Image",
+    name = "Create Recipe Content With Empty Image",
     showBackground = true,
     widthDp = 550,
     heightDp = 1300
 )
 @Preview(
-    name = "Create Recipe Content With Picked Image - Dark",
+    name = "Create Recipe Content With Empty Image - Dark",
     showBackground = true,
     widthDp = 550, heightDp = 1300,
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
-fun CreateRecipeContentWithPickedImagePreview() {
+fun CreateRecipeContentWithEmptyImagePreview() {
     RecipeVaultTheme {
         CreateRecipeContent(
-            ui = fakeCreateRecipeUiState(pickedImageUrl = "content://picked-image-uri"),
+            ui = fakeCreateRecipeUiState(),
             onBack = {},
             onSave = {},
             onTitleChange = {},
