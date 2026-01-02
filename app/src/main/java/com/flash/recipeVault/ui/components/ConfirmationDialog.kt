@@ -1,6 +1,7 @@
 package com.flash.recipeVault.ui.components
 
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
@@ -43,7 +44,7 @@ fun ConfirmationDialog(
     name = "Confirmation Dialog Preview - Dark",
     showBackground = true,
     widthDp = 360,
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+    uiMode = Configuration.UI_MODE_NIGHT_YES
 )
 @Composable
 private fun ConfirmationDialogPreview() {
