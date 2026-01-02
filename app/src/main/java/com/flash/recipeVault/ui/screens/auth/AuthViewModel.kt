@@ -38,14 +38,12 @@ data class AuthFormUiState(
     val email: String = "",
     val password: String = "",
     val isNavigating: Boolean = false,
+    val authState: AuthState = AuthState.Loading,
 )
 
 class AuthViewModel(
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 ) : ViewModel() {
-    private val _state = MutableStateFlow<AuthState>(AuthState.Loading)
-    val state: StateFlow<AuthState> = _state
-
     private val _ui = MutableStateFlow(AuthFormUiState())
     val ui: StateFlow<AuthFormUiState> = _ui
 
@@ -59,7 +57,7 @@ class AuthViewModel(
     private val authListener = FirebaseAuth.AuthStateListener { updateAuthState() }
 
     init {
-       updateAuthState()
+        updateAuthState()
         auth.addAuthStateListener(authListener)
     }
 
@@ -70,12 +68,13 @@ class AuthViewModel(
 
     private fun updateAuthState() {
         val user = auth.currentUser
-        _state.update {
-            user?.let {
-                AuthState.LoggedIn(it.uid, it.email) }
-                ?: AuthState.LoggedOut
+        _ui.update { it ->
+            it.copy(authState = user?.let {
+                AuthState.LoggedIn(it.uid, it.email)
+            }
+                ?: AuthState.LoggedOut)
         }
-        user?.let {  emitIfAllowed(AuthEvent.NavigateLoggedIn) }
+        user?.let { emitIfAllowed(AuthEvent.NavigateLoggedIn) }
     }
 
     fun onEmailChange(v: String) {
@@ -97,7 +96,7 @@ class AuthViewModel(
         }
 
         try {
-            _state.value = AuthState.Loading
+            _ui.update { it.copy(authState = AuthState.Loading) }
             auth.signInWithEmailAndPassword(cleanEmail, cleanPass).await()
         } catch (e: Exception) {
             toast(e.message ?: "Sign-in failed")
@@ -114,7 +113,7 @@ class AuthViewModel(
         }
 
         try {
-            _state.value = AuthState.Loading
+            _ui.update { it.copy(authState = AuthState.Loading) }
             auth.createUserWithEmailAndPassword(cleanEmail, cleanPass).await()
         } catch (e: Exception) {
             toast(e.message ?: "Sign-up failed")
@@ -127,7 +126,7 @@ class AuthViewModel(
 
     fun signInWithGoogleIdToken(idToken: String) = viewModelScope.launch {
         try {
-            _state.value = AuthState.Loading
+            _ui.update { it.copy(authState = AuthState.Loading) }
             val credential = GoogleAuthProvider.getCredential(idToken, null)
             auth.signInWithCredential(credential).await()
         } catch (e: Exception) {
