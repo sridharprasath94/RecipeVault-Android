@@ -1,7 +1,7 @@
 package com.flash.recipeVault.ui
 
-import MatchMode
-import SuggestionAutoCompleteField
+import com.flash.recipeVault.ui.components.MatchMode
+import com.flash.recipeVault.ui.components.SuggestionAutoCompleteField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
