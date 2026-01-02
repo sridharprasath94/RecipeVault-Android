@@ -28,7 +28,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.ui.components.FormTopBar
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.RecipeForm
-import com.flash.recipeVault.ui.model.SuggestionsUi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import rememberAnimatedImeBottomPadding
@@ -79,8 +78,6 @@ fun CreateRecipeScreen(
 
     CreateRecipeContent(
         ui = ui,
-        suggestions = ui.suggestions,
-        isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onSave = {
             keyboardController?.hide()
@@ -119,8 +116,6 @@ fun CreateRecipeScreen(
 @Composable
 fun CreateRecipeContent(
     ui: CreateRecipeUiState,
-    suggestions: SuggestionsUi,
-    isNavigating: Boolean,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onTitleChange: (String) -> Unit,
@@ -135,7 +130,7 @@ fun CreateRecipeContent(
     onStepAdd: () -> Unit,
 ) {
     val imePadding = rememberAnimatedImeBottomPadding()
-    val isInteractionEnabled = !ui.isSaving && !isNavigating
+    val isInteractionEnabled = !ui.isSaving && !ui.isNavigating
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
         topBar = {
@@ -154,7 +149,7 @@ fun CreateRecipeContent(
                 padding = padding,
                 isLoading = false,
                 title = ui.title,
-                suggestions = suggestions,
+                suggestions = ui.suggestions,
                 onTitleChange = onTitleChange,
                 desc = ui.description,
                 onDescChange = onDescChange,

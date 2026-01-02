@@ -98,7 +98,6 @@ fun RecipeDetailScreen(
 
     RecipeDetailContent(
         ui = ui,
-        isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onEdit = vm::requestEdit,
         onDelete = vm::requestDelete
@@ -109,12 +108,11 @@ fun RecipeDetailScreen(
 @Composable
 fun RecipeDetailContent(
     ui: RecipeDetailUiState,
-    isNavigating: Boolean,
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    val isInteractionEnabled = !ui.isLoadingData && !isNavigating
+    val isInteractionEnabled = !ui.isLoadingData && !ui.isNavigating
     Scaffold(
         topBar = {
             Box {

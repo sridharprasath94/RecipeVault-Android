@@ -78,8 +78,6 @@ fun EditRecipeScreen(
 
     EditRecipeContent(
         ui = ui,
-        suggestions = ui.suggestions,
-        isNavigating = ui.isNavigating,
         onBack = vm::requestBack,
         onSave = {
             keyboardController?.hide()
@@ -118,8 +116,6 @@ fun EditRecipeScreen(
 @Composable
 fun EditRecipeContent(
     ui: EditRecipeUiState,
-    suggestions: SuggestionsUi,
-    isNavigating: Boolean,
     onBack: () -> Unit,
     onSave: () -> Unit,
     onTitleChange: (String) -> Unit,
@@ -134,7 +130,7 @@ fun EditRecipeContent(
     onStepAdd: () -> Unit,
 ) {
     val imePadding = rememberAnimatedImeBottomPadding()
-    val isInteractionEnabled = !ui.isSaving && !ui.isLoadingData && !isNavigating
+    val isInteractionEnabled = !ui.isSaving && !ui.isLoadingData && !ui.isNavigating
     Scaffold(
         modifier = Modifier.padding(bottom = imePadding),
         topBar = {
@@ -153,7 +149,7 @@ fun EditRecipeContent(
                 padding = padding,
                 isLoading = ui.isLoadingData,
                 title = ui.title,
-                suggestions = suggestions,
+                suggestions = ui.suggestions,
                 onTitleChange = onTitleChange,
                 desc = ui.description,
                 onDescChange = onDescChange,

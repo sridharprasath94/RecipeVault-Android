@@ -1,9 +1,9 @@
 package com.flash.recipeVault.ui.screens.recipeDetail
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.flash.recipeVault.ui.components.IngredientFormRow
+import com.flash.recipeVault.ui.theme.RecipeVaultTheme
 
 
 private fun previewRecipeDetailUi(): RecipeDetailUiState {
@@ -27,17 +27,23 @@ private fun previewRecipeDetailUi(): RecipeDetailUiState {
 }
 
 @Preview(
-    name = "Recipe Detail – Normal",
+    name = "Recipe Detail – Loaded",
     showBackground = true,
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe Detail – Loaded - Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
-fun RecipeDetailContentPreview() {
-    MaterialTheme {
+fun RecipeDetailContentLoadedPreview() {
+    RecipeVaultTheme {
         RecipeDetailContent(
             ui = previewRecipeDetailUi(),
-            isNavigating = false,
             onBack = {},
             onEdit = {},
             onDelete = {}
@@ -51,12 +57,18 @@ fun RecipeDetailContentPreview() {
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe Detail – Loading - Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 fun RecipeDetailContentLoadingPreview() {
-    MaterialTheme {
+    RecipeVaultTheme {
         RecipeDetailContent(
             ui = previewRecipeDetailUi().copy(isLoadingData = true),
-            isNavigating = false,
             onBack = {},
             onEdit = {},
             onDelete = {}
@@ -70,12 +82,18 @@ fun RecipeDetailContentLoadingPreview() {
     widthDp = 360,
     heightDp = 720
 )
+@Preview(
+    name = "Recipe Detail – Finishing - Dark",
+    showBackground = true,
+    widthDp = 360,
+    heightDp = 720,
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 fun RecipeDetailContentFinishingPreview() {
-    MaterialTheme {
+    RecipeVaultTheme {
         RecipeDetailContent(
-            ui = previewRecipeDetailUi(),
-            isNavigating = true,
+            ui = previewRecipeDetailUi().copy(isNavigating = true),
             onBack = {},
             onEdit = {},
             onDelete = {}

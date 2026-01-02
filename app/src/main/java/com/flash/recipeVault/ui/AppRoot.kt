@@ -4,7 +4,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -38,7 +37,7 @@ fun AppRoot(container: AppContainer) {
     RecipeVaultTheme {
         val nav = rememberNavController()
         val authVm = remember { AuthViewModel() }
-        val authState by authVm.state.collectAsState()
+        val authState = authVm.ui.collectAsState().value.authState
 
 
         LaunchedEffect(Unit) {

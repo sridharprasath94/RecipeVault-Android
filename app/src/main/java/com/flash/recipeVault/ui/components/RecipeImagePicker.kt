@@ -1,5 +1,6 @@
 package com.flash.recipeVault.ui.components
 
+import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -51,6 +52,12 @@ fun RecipeImagePicker(
 }
 
 @Preview(name = "Image Section - With Image", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Image Section - With Image Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeImageSectionPreview_WithImage() {
     RecipeVaultTheme {
@@ -64,6 +71,12 @@ private fun RecipeImageSectionPreview_WithImage() {
 }
 
 @Preview(name = "Image Section - No Image", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Image Section - No Image Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeImageSectionPreview_None() {
     RecipeVaultTheme {
@@ -77,6 +90,12 @@ private fun RecipeImageSectionPreview_None() {
 }
 
 @Preview(name = "Image Section - Picked Uri", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Image Section - Picked Uri Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeImageSectionPreview_PickedUri() {
     RecipeVaultTheme {
@@ -90,6 +109,12 @@ private fun RecipeImageSectionPreview_PickedUri() {
 }
 
 @Preview(name = "Image Section - Existing Url", showBackground = true, widthDp = 360)
+@Preview(
+    name = "Image Section - Existing Url Dark",
+    showBackground = true,
+    widthDp = 360,
+    uiMode = Configuration.UI_MODE_NIGHT_YES
+)
 @Composable
 private fun RecipeImageSectionPreview_ExistingUrl() {
     RecipeVaultTheme {
