@@ -32,7 +32,6 @@ data class CreateRecipeUiState(
     val title: String = "",
     val description: String = "",
     val pickedImageUri: String? = null,
-    val existingImageUrl: String? = null,
     val ingredients: List<IngredientFormRow> = listOf(IngredientFormRow()),
     val steps: List<String> = listOf(""),
     val suggestions: SuggestionsUi = SuggestionsUi(),
@@ -85,14 +84,12 @@ class CreateRecipeViewModel(
         _ui.update {
             it.copy(
                 pickedImageUri = uri,
-                // Prefer local picked image over any existing URL
-                existingImageUrl = if (!uri.isNullOrBlank()) null else it.existingImageUrl
             )
         }
     }
 
     fun onRemoveImage() {
-        _ui.update { it.copy(pickedImageUri = null, existingImageUrl = null) }
+        _ui.update { it.copy(pickedImageUri = null) }
     }
 
     fun onAddIngredient() {
@@ -193,7 +190,7 @@ class CreateRecipeViewModel(
                     title = cleanTitle,
                     description = cleanDesc,
                     imageUri = state.pickedImageUri,
-                    imageUrl = state.existingImageUrl,
+                    imageUrl = null,
                     ingredients = cleanIngredients,
                     steps = cleanSteps
                 )

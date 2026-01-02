@@ -28,7 +28,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.ui.components.FormTopBar
 import com.flash.recipeVault.ui.components.IngredientFormRow
 import com.flash.recipeVault.ui.components.RecipeForm
-import com.flash.recipeVault.ui.model.SuggestionsUi
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import rememberAnimatedImeBottomPadding

@@ -32,6 +32,21 @@ private fun previewSuggestions() = SuggestionsUi(
     steps = listOf("Boil", "Cook", "Mix", "Serve")
 )
 
+private fun fakeEditRecipeUiState(
+    ingredients: List<IngredientFormRow> = previewIngredients(),
+    steps: List<String> = previewSteps(),
+    isSaving: Boolean = false,
+): EditRecipeUiState {
+    return EditRecipeUiState(
+        title = "Paneer Butter Masala",
+        description = "Rich and creamy curry",
+        ingredients = ingredients,
+        suggestions = previewSuggestions(),
+        steps = steps,
+        isSaving = isSaving,
+    )
+}
+
 @Preview(
     name = "Edit TopBar - isSavingFalse",
     showBackground = true,
