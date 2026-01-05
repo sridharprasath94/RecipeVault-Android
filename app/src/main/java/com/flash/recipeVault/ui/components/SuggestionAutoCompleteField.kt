@@ -1,3 +1,5 @@
+package com.flash.recipeVault.ui.components
+
 import android.content.res.Configuration
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
@@ -203,5 +205,4 @@ private fun SuggestionAutoCompleteFieldWithoutDropdownPreview() {
             matchMode = MatchMode.Contains
         )
     }
-
 }

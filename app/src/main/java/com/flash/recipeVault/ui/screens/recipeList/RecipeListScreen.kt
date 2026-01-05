@@ -41,6 +41,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -59,7 +61,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.ui.components.ConfirmationDialog
-import com.flash.recipeVault.util.RecipeAsyncImage
+import com.flash.recipeVault.ui.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.flow.collectLatest
@@ -330,7 +332,14 @@ fun RecipeListContent(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        val pullRefreshState = rememberPullToRefreshState()
+
+        PullToRefreshBox(
+            state = pullRefreshState,
+            isRefreshing = ui.isSyncing,
+            onRefresh = onSyncNow,
+            modifier = Modifier.fillMaxSize()
+        ) {
 
             RecipeListBody(
                 padding = padding,

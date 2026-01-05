@@ -43,7 +43,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.ui.components.ConfirmationDialog
 import com.flash.recipeVault.ui.components.IngredientFormRow
-import com.flash.recipeVault.util.RecipeAsyncImage
+import com.flash.recipeVault.ui.util.RecipeAsyncImage
 import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)

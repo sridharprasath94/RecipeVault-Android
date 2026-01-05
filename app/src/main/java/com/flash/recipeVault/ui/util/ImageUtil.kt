@@ -1,4 +1,4 @@
-package com.flash.recipeVault.util
+package com.flash.recipeVault.ui.util
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.height

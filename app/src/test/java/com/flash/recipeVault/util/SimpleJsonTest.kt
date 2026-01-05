@@ -1,5 +1,6 @@
 package com.flash.recipeVault.util
 
+import com.flash.recipeVault.ui.util.SimpleJson
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

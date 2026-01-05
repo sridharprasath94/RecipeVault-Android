@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.flash.recipeVault.ui.theme.RecipeVaultTheme
-import com.flash.recipeVault.util.RecipeAsyncImage
-import com.flash.recipeVault.util.RecipeImage
+import com.flash.recipeVault.ui.util.RecipeAsyncImage
+import com.flash.recipeVault.ui.util.RecipeImage
 
 @Composable
 fun RecipeImagePicker(
