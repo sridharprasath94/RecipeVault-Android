@@ -1,6 +1,7 @@
 package com.flash.recipeVault.ui.screens.recipeList
 
 import android.text.format.DateFormat
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
@@ -11,6 +12,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -80,7 +82,9 @@ class RecipeListViewModel(
         viewModelScope.launch {
             repo.observeRecipes()
                 .onStart { _ui.update { it.copy(isLoadingData = true) } }
+                .distinctUntilChanged()
                 .collect { list ->
+                    Log.d( "RecipeListViewModel", "Observed ${list.size} recipes")
                     _ui.update {
                         it.copy(
                             recipes = list,

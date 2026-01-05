@@ -205,5 +205,4 @@ private fun SuggestionAutoCompleteFieldWithoutDropdownPreview() {
             matchMode = MatchMode.Contains
         )
     }
-
 }
