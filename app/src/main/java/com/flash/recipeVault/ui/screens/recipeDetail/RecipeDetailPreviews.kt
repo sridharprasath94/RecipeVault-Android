@@ -46,6 +46,7 @@ fun RecipeDetailContentLoadedPreview() {
             ui = previewRecipeDetailUi(),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }
@@ -71,6 +72,7 @@ fun RecipeDetailContentLoadingPreview() {
             ui = previewRecipeDetailUi().copy(isLoadingData = true),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }
@@ -96,6 +98,7 @@ fun RecipeDetailContentFinishingPreview() {
             ui = previewRecipeDetailUi().copy(isNavigating = true),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }

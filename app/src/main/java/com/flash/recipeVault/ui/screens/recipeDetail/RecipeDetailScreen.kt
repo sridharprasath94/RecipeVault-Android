@@ -2,6 +2,7 @@ package com.flash.recipeVault.ui.screens.recipeDetail
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,9 +36,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -100,8 +105,16 @@ fun RecipeDetailScreen(
         ui = ui,
         onBack = vm::requestBack,
         onEdit = vm::requestEdit,
-        onDelete = vm::requestDelete
+        onDelete = vm::requestDelete,
+        onImageClick = vm::onImageClicked
     )
+
+    if (ui.showImagePreview && ui.existingImageUrl != null) {
+        FullScreenImageDialog(
+            imageUrl = ui.existingImageUrl!!,
+            onDismiss = vm::dismissImagePreview
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,6 +124,7 @@ fun RecipeDetailContent(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onImageClick: () -> Unit,
 ) {
     val isInteractionEnabled = !ui.isLoadingData && !ui.isNavigating
     Scaffold(
@@ -150,7 +164,8 @@ fun RecipeDetailContent(
                 description = ui.description,
                 imageUrl = ui.existingImageUrl,
                 ingredients = ui.ingredients,
-                steps = ui.steps
+                steps = ui.steps,
+                onImageClick = onImageClick
             )
 
             if (!isInteractionEnabled) {
@@ -177,6 +192,7 @@ fun RecipeDetailBody(
     imageUrl: String?,
     ingredients: List<IngredientFormRow>,
     steps: List<String>,
+    onImageClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -201,6 +217,7 @@ fun RecipeDetailBody(
                 Spacer(Modifier.height(12.dp))
                 RecipeAsyncImage(
                     model = url,
+                    onImageClick = onImageClick
                 )
             }
         }
@@ -330,3 +347,27 @@ private fun StepItemText(
     }
 }
 
+@Composable
+fun FullScreenImageDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Transparent)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            RecipeAsyncImage(
+                model = imageUrl,
+                modifier = Modifier.fillMaxSize(),
+                width = Dp.Unspecified,
+                height = Dp.Unspecified,
+                cornerRadius = 0.dp,
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}

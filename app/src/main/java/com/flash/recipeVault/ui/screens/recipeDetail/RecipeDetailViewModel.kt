@@ -27,6 +27,7 @@ data class RecipeDetailUiState(
     val isLoadingData: Boolean = false,
     val deleteRecipeId: Long? = null,
     val isNavigating: Boolean = false,
+    val showImagePreview: Boolean = false,
 ) {
     val showDeleteDialog: Boolean get() = deleteRecipeId != null
 }
@@ -128,5 +129,13 @@ class RecipeDetailViewModel(
         if (!_ui.value.isNavigating) {
             _events.tryEmit(event)
         }
+    }
+
+    fun onImageClicked() {
+        _ui.update { it.copy(showImagePreview = true) }
+    }
+
+    fun dismissImagePreview() {
+        _ui.update { it.copy(showImagePreview = false) }
     }
 }
