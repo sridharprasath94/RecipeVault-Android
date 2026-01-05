@@ -1,11 +1,20 @@
 package com.flash.recipeVault.ui.util
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -38,21 +47,35 @@ fun RecipeAsyncImage(
             else it
         }
 
-    if (isPreview) {
-        Image(
-            painter = painterResource(R.drawable.preview_food),
-            contentDescription = "Recipe Image",
-            modifier = imageModifier,
-            contentScale = contentScale,
-        )
-    } else {
-        AsyncImage(
-            model = model,
-            contentDescription = "Recipe Image",
-            modifier = imageModifier,
-            contentScale = contentScale,
-        )
+    when {
+        model == null -> {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = "No image",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = imageModifier,
+            )
+        }
+
+        isPreview -> {
+            Image(
+                painter = painterResource(R.drawable.preview_food),
+                contentDescription = "Recipe Image",
+                modifier = imageModifier,
+                contentScale = contentScale,
+            )
+        }
+
+        else -> {
+            AsyncImage(
+                model = model,
+                contentDescription = "Recipe Image",
+                modifier = imageModifier,
+                contentScale = contentScale,
+            )
+        }
     }
+
 }
 
 @Composable
