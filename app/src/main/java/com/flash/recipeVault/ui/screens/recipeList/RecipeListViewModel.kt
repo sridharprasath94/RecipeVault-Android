@@ -5,7 +5,9 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.flash.recipeVault.data.RecipeEntity
+import com.flash.recipeVault.data.SyncOrigin
 import com.flash.recipeVault.di.AppContainer
+import com.flash.recipeVault.ui.util.toFormattedDateTimeLegacy
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -84,7 +86,7 @@ class RecipeListViewModel(
                 .onStart { _ui.update { it.copy(isLoadingData = true) } }
                 .distinctUntilChanged()
                 .collect { list ->
-                    Log.d( "RecipeListViewModel", "Observed ${list.size} recipes")
+                    Log.d("RecipeListViewModel", "Observed ${list.size} recipes")
                     _ui.update {
                         it.copy(
                             recipes = list,
@@ -92,6 +94,39 @@ class RecipeListViewModel(
                         )
                     }
                 }
+        }
+
+        // 2️⃣ Observe sync origin
+        viewModelScope.launch {
+            repo.syncOrigin.collect { origin ->
+                when (origin) {
+                    SyncOrigin.Local -> {
+                        _ui.update {
+                            it.copy(isCloudSynced = false)
+                        }
+                    }
+
+                    SyncOrigin.Remote -> {
+                        // Remote updates advance lastSyncedAt and keep cloud synced
+                        val latestUpdatedAt =
+                            _ui.value.recipes
+                                .maxOfOrNull { it.updatedAt }
+                                ?: return@collect
+
+                        Log.d(
+                            "RecipeRepository",
+                            "SyncOrigin.Remote observed, updating " +
+                                    "lastSyncedAt to ${latestUpdatedAt.toFormattedDateTimeLegacy()}"
+                        )
+                        _ui.update {
+                            it.copy(
+                                isCloudSynced = true,
+                                lastSyncedAt = latestUpdatedAt
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 

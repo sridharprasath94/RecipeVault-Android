@@ -4,7 +4,9 @@ import com.flash.recipeVault.data.*
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
@@ -150,28 +152,30 @@ class FirestoreSyncService(
                     updatedAt = updatedAt
                 )
 
-                val ingredients = (doc.get("ingredients") as? List<*>)?.mapIndexedNotNull { idx, v ->
-                    val m = v as? Map<*, *> ?: return@mapIndexedNotNull null
-                    IngredientEntity(
-                        recipeId = id,
-                        name = (m["name"] as? String) ?: return@mapIndexedNotNull null,
-                        quantity = m["quantity"] as? String,
-                        unit = m["unit"] as? String,
-                        sortOrder = (m["sortOrder"] as? Number)?.toInt() ?: idx
-                    )
-                } ?: emptyList()
+                val ingredients =
+                    (doc.get("ingredients") as? List<*>)?.mapIndexedNotNull { idx, v ->
+                        val m = v as? Map<*, *> ?: return@mapIndexedNotNull null
+                        IngredientEntity(
+                            recipeId = id,
+                            name = (m["name"] as? String) ?: return@mapIndexedNotNull null,
+                            quantity = m["quantity"] as? String,
+                            unit = m["unit"] as? String,
+                            sortOrder = (m["sortOrder"] as? Number)?.toInt() ?: idx
+                        )
+                    } ?: emptyList()
 
                 val steps = (doc.get("steps") as? List<*>)?.mapIndexedNotNull { idx, v ->
                     val m = v as? Map<*, *> ?: return@mapIndexedNotNull null
                     StepEntity(
                         recipeId = id,
-                        instruction = (m["instruction"] as? String) ?: return@mapIndexedNotNull null,
+                        instruction = (m["instruction"] as? String)
+                            ?: return@mapIndexedNotNull null,
                         sortOrder = (m["sortOrder"] as? Number)?.toInt() ?: idx
                     )
                 } ?: emptyList()
 
                 // Fire-and-forget; Room writes are suspend so we launch a coroutine via a lightweight thread.
-                GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                CoroutineScope(Dispatchers.IO).launch {
                     runCatching { repo.applyRemoteRecipe(recipe, ingredients, steps) }
                 }
             }

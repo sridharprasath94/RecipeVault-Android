@@ -1,9 +1,15 @@
 package com.flash.recipeVault.data
 
 import com.flash.recipeVault.firebase.FirebaseImageStorage
-import com.flash.recipeVault.util.SimpleJson
+import com.flash.recipeVault.ui.util.SimpleJson
 import com.flash.recipeVault.utilFz.JsonImportParser
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 
+sealed class SyncOrigin {
+    object Local : SyncOrigin()
+    object Remote : SyncOrigin()
+}
 class RecipeRepository(
     private val dao: RecipeDao,
     private val imageStorage: FirebaseImageStorage
@@ -11,6 +17,12 @@ class RecipeRepository(
 
     fun observeRecipes() = dao.observeRecipes()
     fun observeRecipe(id: Long) = dao.observeRecipeWithDetails(id)
+
+    private val _syncOrigin = MutableSharedFlow<SyncOrigin>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
+    val syncOrigin: Flow<SyncOrigin> = _syncOrigin
 
     suspend fun createRecipe(
         title: String,
@@ -64,6 +76,7 @@ class RecipeRepository(
             )
         }
 
+        _syncOrigin.tryEmit(SyncOrigin.Local)
         return recipeId
     }
 
@@ -173,6 +186,7 @@ class RecipeRepository(
                 StepEntity(recipeId = id, instruction = text, sortOrder = idx)
             }
         )
+        _syncOrigin.tryEmit(SyncOrigin.Local)
     }
 
     suspend fun exportAllAsJson(): String {
@@ -251,6 +265,7 @@ class RecipeRepository(
             dao.deleteSteps(recipe.id)
             dao.insertIngredients(ingredients)
             dao.insertSteps(steps)
+            _syncOrigin.tryEmit(SyncOrigin.Remote)
         }
     }
 }

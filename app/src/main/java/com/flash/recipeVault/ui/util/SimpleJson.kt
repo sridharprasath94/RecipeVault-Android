@@ -1,4 +1,7 @@
-package com.flash.recipeVault.util
+package com.flash.recipeVault.ui.util
+
+import kotlin.collections.iterator
+import kotlin.text.iterator
 
 object SimpleJson {
     fun encode(value: Any?): String = buildString { appendValue(value) }

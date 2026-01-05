@@ -59,7 +59,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.flash.recipeVault.data.RecipeEntity
 import com.flash.recipeVault.ui.components.ConfirmationDialog
-import com.flash.recipeVault.util.RecipeAsyncImage
+import com.flash.recipeVault.ui.util.RecipeAsyncImage
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import kotlinx.coroutines.flow.collectLatest
