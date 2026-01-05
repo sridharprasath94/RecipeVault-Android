@@ -102,6 +102,7 @@ class RecipeRepository(
                 // Swallow: do not fail the delete flow if Storage deletion fails.
             }
         }
+        _syncOrigin.tryEmit(SyncOrigin.Local)
     }
 
     suspend fun updateLocalImageUrl(id: Long, imageUrl: String) {
