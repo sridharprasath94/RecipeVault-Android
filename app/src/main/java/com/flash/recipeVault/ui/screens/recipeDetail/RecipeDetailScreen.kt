@@ -2,6 +2,9 @@ package com.flash.recipeVault.ui.screens.recipeDetail
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +36,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -100,8 +110,16 @@ fun RecipeDetailScreen(
         ui = ui,
         onBack = vm::requestBack,
         onEdit = vm::requestEdit,
-        onDelete = vm::requestDelete
+        onDelete = vm::requestDelete,
+        onImageClick = vm::onImageClicked
     )
+
+    if (ui.showImagePreview && ui.existingImageUrl != null) {
+        FullScreenImageDialog(
+            imageUrl = ui.existingImageUrl!!,
+            onDismiss = vm::dismissImagePreview
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -111,6 +129,7 @@ fun RecipeDetailContent(
     onBack: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    onImageClick: () -> Unit,
 ) {
     val isInteractionEnabled = !ui.isLoadingData && !ui.isNavigating
     Scaffold(
@@ -150,7 +169,8 @@ fun RecipeDetailContent(
                 description = ui.description,
                 imageUrl = ui.existingImageUrl,
                 ingredients = ui.ingredients,
-                steps = ui.steps
+                steps = ui.steps,
+                onImageClick = onImageClick
             )
 
             if (!isInteractionEnabled) {
@@ -177,6 +197,7 @@ fun RecipeDetailBody(
     imageUrl: String?,
     ingredients: List<IngredientFormRow>,
     steps: List<String>,
+    onImageClick: () -> Unit
 ) {
     LazyColumn(
         modifier = Modifier
@@ -201,6 +222,7 @@ fun RecipeDetailBody(
                 Spacer(Modifier.height(12.dp))
                 RecipeAsyncImage(
                     model = url,
+                    onImageClick = onImageClick
                 )
             }
         }
@@ -330,3 +352,51 @@ private fun StepItemText(
     }
 }
 
+@Composable
+fun FullScreenImageDialog(
+    imageUrl: String,
+    onDismiss: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+
+        // Zoom & pan state
+        var scale by remember { mutableFloatStateOf(1f) }
+        var offsetX by remember { mutableFloatStateOf(0f) }
+        var offsetY by remember { mutableFloatStateOf(0f) }
+
+        val transformState = rememberTransformableState { zoomChange, panChange, _ ->
+            scale = (scale * zoomChange).coerceIn(1f, 5f)
+
+            if (scale > 1f) {
+                val panSpeed = scale.coerceAtLeast(1f)
+                offsetX += panChange.x * panSpeed
+                offsetY += panChange.y * panSpeed
+            } else {
+                offsetX = 0f
+                offsetY = 0f
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+                .clickable { onDismiss() },
+            contentAlignment = Alignment.Center
+        ) {
+            RecipeAsyncImage(
+                model = imageUrl,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY
+                    )
+                    .transformable(transformState),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}

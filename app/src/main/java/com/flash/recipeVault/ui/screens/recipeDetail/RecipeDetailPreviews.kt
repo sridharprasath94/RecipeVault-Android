@@ -10,7 +10,7 @@ private fun previewRecipeDetailUi(): RecipeDetailUiState {
     return RecipeDetailUiState(
         title = "Paneer Butter Masala",
         description = "A rich and creamy North Indian curry made with paneer.",
-        existingImageUrl = null, // keep null for preview stability
+        existingImageUrl = "https://www.example.com/images/paneer_butter_masala.jpg",
         ingredients = listOf(
             IngredientFormRow("Paneer", "200", "g"),
             IngredientFormRow("Butter", "2", "tbsp"),
@@ -46,6 +46,7 @@ fun RecipeDetailContentLoadedPreview() {
             ui = previewRecipeDetailUi(),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }
@@ -71,6 +72,7 @@ fun RecipeDetailContentLoadingPreview() {
             ui = previewRecipeDetailUi().copy(isLoadingData = true),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }
@@ -96,6 +98,7 @@ fun RecipeDetailContentFinishingPreview() {
             ui = previewRecipeDetailUi().copy(isNavigating = true),
             onBack = {},
             onEdit = {},
+            onImageClick = {},
             onDelete = {}
         )
     }

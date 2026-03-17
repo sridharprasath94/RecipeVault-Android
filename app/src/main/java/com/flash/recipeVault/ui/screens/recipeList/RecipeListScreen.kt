@@ -455,45 +455,64 @@ fun RecipeListItem(
     onEdit: () -> Unit,
     onDeleteClick: () -> Unit,
 ) {
-    Card(Modifier.fillMaxWidth()) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
-                .clickable(onClick = onOpen),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onOpen)
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
 
-            Column(
-                Modifier
-                    .weight(1f)
+            RecipeAsyncImage(
+                model = recipe.imageUrl,
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(recipe.title, style = MaterialTheme.typography.titleMedium)
-                if (!recipe.description.isNullOrBlank()) {
-                    Spacer(Modifier.height(4.dp))
-                    Text(recipe.description, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
 
-
-            recipe.imageUrl?.let { url ->
-                Box(
-                    Modifier
-                        .weight(1f)
+                // 📝 Text content
+                Column(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    RecipeAsyncImage(url)
+                    Text(
+                        text = recipe.title,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+
+                    if (!recipe.description.isNullOrBlank()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = recipe.description,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2
+                        )
+                    }
                 }
-            }
 
+                // ✏️ Actions grouped
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onEdit) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = "Edit"
+                        )
+                    }
 
-            IconButton(modifier = Modifier.weight(0.4f), onClick = onEdit) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
-            }
-
-
-            IconButton(modifier = Modifier.weight(0.4f), onClick = onDeleteClick) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                    IconButton(onClick = onDeleteClick) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete"
+                        )
+                    }
+                }
             }
         }
     }
